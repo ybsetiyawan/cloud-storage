@@ -76,7 +76,7 @@
                   color="primary"
                   class="custom-underlined"
                   prepend-inner-icon="mdi-account-outline"
-                  placeholder="Masukkan username Anda"
+                  placeholder="Masukkan username"
                   hide-details
                   autofocus
                 ></v-text-field>
