@@ -1,0 +1,2 @@
+NUXT_PUBLIC_API_BASE=http://localhost:8090/api
+NUXT_PUBLIC_FILE_BASE=http://localhost:8090
