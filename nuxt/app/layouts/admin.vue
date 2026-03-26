@@ -20,7 +20,13 @@
           class="text-subtitle-2 font-weight-black text-blue-darken-4"
           style="letter-spacing: 1px"
         >
-          EDPSBY-DRIVE
+          EDPSBY
+        </div>
+         <div
+          class="text-subtitle-2 font-weight-black text-red-darken-4"
+          style="letter-spacing: 1px"
+        >
+          DRIVE
         </div>
       </div>
 
@@ -32,7 +38,7 @@
           prepend-icon="mdi-folder-zip-outline"
           title="File Manager"
           rounded="lg"
-          active-color="primary"
+          color="primary"
           class="mb-2 shadow-sm"
         />
 
@@ -41,7 +47,7 @@
           prepend-icon="mdi-folder-account"
           title="Kelola User"
           rounded="lg"
-          active-color="error"
+          color="error"
           class="mb-2 shadow-sm"
         /> -->
 
@@ -91,18 +97,16 @@
         <div>
           <div class="d-flex align-center">
             <span
-              class="text-subtitle-1 font-weight-black text-slate-900 tracking-tighter"
+              class="text-subtitle-1 font-weight-black text-blue-darken-4 tracking-tighter"
             >
-              {{ greeting }}, {{ userData.username }}
+              {{ greeting }} ,
             </span>
-            <v-chip
-              size="x-small"
-              color="grey-darken-2"
-              variant="flat"
-              class="ml-3 font-weight-black px-2 rounded-md"
+            <span
+              class="text-subtitle-1 font-weight-black text-red-darken-4 tracking-tighter"
             >
-              {{ userData.role || "EDP STAFF" }}
-            </v-chip>
+            &nbsp;  {{ userData.username }}
+            </span>
+           
           </div>
         </div>
       </div>

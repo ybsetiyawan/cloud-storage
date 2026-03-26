@@ -199,28 +199,66 @@
       </template>
     </v-snackbar>
 
-    <v-dialog v-model="showUploadDialog" max-width="500" persistent>
-      <v-card>
-        <v-card-title class="text-h6">Uploading Files</v-card-title>
-        <v-card-text>
-          <div v-for="(f, idx) in uploadProgress" :key="idx" class="mb-4">
-            <div class="d-flex justify-space-between text-caption mb-1">
-              <span class="text-truncate" style="max-width: 80%">{{
-                f.name
-              }}</span>
-              <span>{{ f.progress }}%</span>
+   <v-dialog v-model="showUploadDialog" max-width="500" persistent scrollable>
+  <v-card>
+    <v-card-title class="d-flex align-center justify-space-between py-3">
+      <span class="text-subtitle-1 font-weight-bold">Uploading Files</span>
+      <v-chip size="small" color="primary">{{ uploadProgress.length }} Files</v-chip>
+    </v-card-title>
+    
+    <v-divider />
+
+    <div class="pa-4 bg-grey-lighten-4">
+      <div class="d-flex justify-space-between text-caption mb-1 font-weight-bold">
+        <span>Total Progress</span>
+        <span>{{ Math.round(overallProgress) }}%</span>
+      </div>
+      <v-progress-linear
+        :model-value="overallProgress"
+        height="10"
+        color="success"
+        striped
+        rounded
+      />
+    </div>
+
+    <v-divider />
+
+    <v-card-text style="height: 300px;" class="pa-0">
+      <v-list lines="one" class="pa-0">
+        <v-list-item v-for="(f, idx) in uploadProgress" :key="idx" class="py-0 border-bottom">
+          <template v-slot:prepend>
+            <v-icon size="16" :color="f.progress === 100 ? 'success' : 'grey'">
+              {{ f.progress === 100 ? 'mdi-check-circle' : 'mdi-file-upload-outline' }}
+            </v-icon>
+          </template>
+
+          <v-list-item-title class="text-caption text-truncate" style="max-width: 250px;">
+            {{ f.name }}
+          </v-list-item-title>
+
+          <template v-slot:append>
+            <div style="width: 100px" class="ml-4 d-flex align-center">
+              <v-progress-linear
+                :model-value="f.progress"
+                height="4"
+                :color="f.progress === 100 ? 'success' : 'primary'"
+                rounded
+              />
+              <span class="text-caption ml-2" style="min-width: 30px">{{ f.progress }}%</span>
             </div>
-            <v-progress-linear
-              :model-value="f.progress"
-              height="8"
-              striped
-              color="primary"
-              rounded
-            />
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+          </template>
+        </v-list-item>
+      </v-list>
+    </v-card-text>
+
+    <v-divider />
+    <v-card-actions class="pa-3">
+      <v-spacer />
+      <span class="text-caption text-medium-emphasis">Mohon jangan tutup halaman ini...</span>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
 
     <v-dialog v-model="showCreateDialog" max-width="400">
       <v-card>
@@ -262,6 +300,11 @@ const newFolderName = ref("");
 const selectedMap = ref<Record<string, boolean>>({});
 const showUploadDialog = ref(false);
 const uploadProgress = ref<{ name: string; progress: number }[]>([]);
+const overallProgress = computed(() => {
+  if (uploadProgress.value.length === 0) return 0;
+  const total = uploadProgress.value.reduce((acc, curr) => acc + curr.progress, 0);
+  return total / uploadProgress.value.length;
+});
 const snackbar = ref(false);
 const snackbarText = ref("");
 
@@ -560,19 +603,21 @@ function uploadFiles(mode = 'file') { // Tambahkan parameter mode
 
   input.click();
 }
+
+
 async function handleDownload(item: any) {
-  const token = localStorage.getItem("admin_token");
-  const url =
-    item.type === "folder"
-      ? `http://localhost:8090/api/folders/${item.id}/download`
-      : `http://localhost:8090/api/files/${item.id}/download`;
+  // Jika folder pakai /download, jika file HANYA pakai ID (sesuai backend)
+  const endpoint = item.type === "folder" 
+    ? `/folders/${item.id}/download` 
+    : `/files/${item.id}`; // Hapus /download di sini
+
   try {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) throw new Error();
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
+    const response = await $api<Blob>(endpoint, {
+      method: "GET",
+      responseType: "blob",
+    }) as Blob;
+
+    const downloadUrl = window.URL.createObjectURL(response);
     const link = document.createElement("a");
     link.href = downloadUrl;
     link.download = item.original_name || item.name || "download";
