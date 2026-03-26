@@ -460,17 +460,54 @@ function handleClick(item: any) {
   else toggleSelection(item);
 }
 
+// async function shareItems(items: any[]) {
+//   const item = items[0];
+//   if (!item) return;
+//   try {
+//     const endpoint =
+//       item.type === "folder"
+//         ? `/folders/${item.id}/share`
+//         : `/files/${item.id}/share`;
+//     const res = (await $api(endpoint, { method: "POST" })) as any;
+//     if (res.link) {
+//       await navigator.clipboard.writeText(res.link);
+//       snackbarText.value = "Link berhasil disalin!";
+//       snackbar.value = true;
+//       fetchFolderContent(currentFolderId.value);
+//     }
+//   } catch (err) {
+//     alert("Gagal membagikan item.");
+//   }
+// }
+
 async function shareItems(items: any[]) {
   const item = items[0];
   if (!item) return;
   try {
-    const endpoint =
-      item.type === "folder"
-        ? `/folders/${item.id}/share`
-        : `/files/${item.id}/share`;
+    const endpoint = item.type === "folder" 
+      ? `/folders/${item.id}/share` 
+      : `/files/${item.id}/share`;
+      
     const res = (await $api(endpoint, { method: "POST" })) as any;
+    
     if (res.link) {
-      await navigator.clipboard.writeText(res.link);
+      // Fallback jika navigator.clipboard tidak tersedia (HTTP Mode)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(res.link);
+      } else {
+        // Cara lama: buat element input sementara
+        const textArea = document.createElement("textarea");
+        textArea.value = res.link;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          console.error('Fallback copy failed', err);
+        }
+        document.body.removeChild(textArea);
+      }
+
       snackbarText.value = "Link berhasil disalin!";
       snackbar.value = true;
       fetchFolderContent(currentFolderId.value);
