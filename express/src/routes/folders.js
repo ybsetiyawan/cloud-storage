@@ -244,17 +244,64 @@ async function deleteFolder(folderId, userId) {
   await pool.query(`DELETE FROM folders WHERE id=$1 AND user_id=$2`, [folderId, userId]);
 }
 
+// router.delete("/:id", auth, async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const folderId = req.params.id;
+
+//     const folderExists = await pool.query(`SELECT id FROM folders WHERE id=$1 AND user_id=$2`, [folderId, userId]);
+//     if(folderExists.rows.length === 0) return res.status(404).json({ error: "Folder not found" });
+
+//     await deleteFolder(folderId, userId);
+
+//     res.json({ success: true });
+//   } catch(err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Delete failed" });
+//   }
+// });
+
+
 router.delete("/:id", auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const folderId = req.params.id;
 
-    const folderExists = await pool.query(`SELECT id FROM folders WHERE id=$1 AND user_id=$2`, [folderId, userId]);
-    if(folderExists.rows.length === 0) return res.status(404).json({ error: "Folder not found" });
+    const folderExists = await pool.query(
+      `SELECT id FROM folders WHERE id=$1 AND user_id=$2`,
+      [folderId, userId]
+    );
 
+    if (folderExists.rows.length === 0) {
+      return res.status(404).json({ error: "Folder not found" });
+    }
+
+    // ✅ 1. HITUNG TOTAL SIZE DALAM FOLDER (RECURSIVE)
+    const totalSizeResult = await pool.query(`
+      WITH RECURSIVE subfolders AS (
+        SELECT id FROM folders WHERE id = $1
+        UNION ALL
+        SELECT f.id FROM folders f
+        INNER JOIN subfolders sf ON f.parent_id = sf.id
+      )
+      SELECT COALESCE(SUM(size), 0) as total
+      FROM files
+      WHERE folder_id IN (SELECT id FROM subfolders)
+    `, [folderId]);
+
+    const totalSize = parseInt(totalSizeResult.rows[0].total) || 0;
+
+    // ✅ 2. DELETE FOLDER
     await deleteFolder(folderId, userId);
 
+    // ✅ 3. UPDATE QUOTA
+    await pool.query(
+      `UPDATE users SET used_quota = used_quota - $1 WHERE id=$2`,
+      [totalSize, userId]
+    );
+
     res.json({ success: true });
+
   } catch(err) {
     console.error(err);
     res.status(500).json({ error: "Delete failed" });
