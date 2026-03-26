@@ -23,7 +23,7 @@
                 Shared Content
               </div>
               <div class="text-caption text-grey d-flex align-center">
-                <span class="cursor-pointer hover-underline" @click="currentFolderId = null">Root</span>
+                <span class="cursor-pointer hover-underline" @click="currentFolderId = null; currentPathName = null">Root</span>
                 <span v-if="currentPathName" class="d-flex align-center">
                   <v-icon size="14">mdi-chevron-right</v-icon>
                   <span class="text-primary font-weight-bold">{{ currentPathName }}</span>
@@ -91,25 +91,26 @@
 <script setup lang="ts">
 definePageMeta({ layout: false, auth: false });
 
+const config = useRuntimeConfig();
 const route = useRoute();
 const shareId = route.params.id;
 
-// State untuk navigasi subfolder
+// Ambil BASE URL dari nuxt.config / .env (Tanpa /api di ujung untuk route download)
+const API_BASE = config.public.apiBase; // Contoh: http://10.126.101.46/api
+const ROOT_URL = (config.public.apiBase as string).replace('/api', ''); // Contoh: http://10.126.101.46
+
+// State navigasi
 const currentFolderId = ref<string | null>(null);
 const currentPathName = ref<string | null>(null);
 
-// Fetch data utama
-const { data, pending, error } = await useFetch<any>(`http://localhost:8090/api/public/share-info/${shareId}`);
+// Fetch data menggunakan URL dinamis
+const { data, pending, error } = await useFetch<any>(`${API_BASE}/public/share-info/${shareId}`);
 
-// Computed items untuk menangani tampilan root vs subfolder
 const displayItems = computed(() => {
   if (!data.value || data.value.type !== 'folder') return [];
-  
-  // Jika sedang di root link share
-  if (!currentFolderId.value) return data.value.children || [];
-  
-  // Jika di dalam subfolder (logic ini bisa dikembangkan dengan API sub-folder-content)
-  return data.value.children.filter((item: any) => item.folder_id == currentFolderId.value);
+  const items = (data.value as any).children || [];
+  if (!currentFolderId.value) return items;
+  return items.filter((item: any) => item.folder_id == currentFolderId.value);
 });
 
 function handleItemClick(item: any) {
@@ -120,40 +121,27 @@ function handleItemClick(item: any) {
 }
 
 function downloadItem(item: any) {
-  // Jika yang diklik adalah folder di dalam list
   if (item.type === 'folder') {
-    // Kita butuh share_id folder tersebut. 
-    // Jika tidak ada, kita arahkan ke sistem download ZIP folder berdasarkan ID (perlu route baru)
-    // Tapi untuk sementara, gunakan logic share_id jika tersedia:
     if (item.share_id) {
-      window.open(`http://localhost:8090/sf/${item.share_id}`, '_blank');
+      window.open(`${ROOT_URL}/sf/${item.share_id}`, '_blank');
     } else {
-      alert('Fitur download sub-folder langsung sedang disiapkan.');
+      alert('Fitur download folder sedang disiapkan.');
     }
   } else {
-    // UNTUK FILE: 
-    // Karena route /s/:shareId di server.js Anda mencari berdasarkan share_id,
-    // maka kita harus mengirimkan share_id-nya, BUKAN ID-nya.
-    if (item.share_id) {
-      window.open(`http://localhost:8090/s/${item.share_id}`, '_blank');
-    } else {
-      // Jika file di dalam folder tidak punya share_id sendiri, 
-      // Anda butuh endpoint download public via ID (Lihat revisi server.js di bawah)
-      window.open(`http://localhost:8090/api/public/download-file/${item.id}`, '_blank');
-    }
+    const url = item.share_id 
+      ? `${ROOT_URL}/s/${item.share_id}` 
+      : `${API_BASE}/public/download-file/${item.id}`;
+    window.open(url, '_blank');
   }
 }
 
 function handleMainDownload() {
   if (!data.value) return;
-  // Ini untuk tombol "Download All" di header (menggunakan shareId dari URL Nuxt)
   const endpoint = data.value.type === 'folder' ? 'sf' : 's';
-  window.location.href = `http://localhost:8090/${endpoint}/${shareId}`;
+  window.location.href = `${ROOT_URL}/${endpoint}/${shareId}`;
 }
 
-
-
-// Helpers (Identik dengan Dashboard)
+// Helpers
 function formatSize(bytes: any) {
   if (!bytes || bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -167,8 +155,8 @@ function getIconConfig(item: any) {
   switch (ext) {
     case 'pdf': return { icon: 'mdi-file-pdf-box', class: 'icon-pdf' };
     case 'xls': case 'xlsx': return { icon: 'mdi-file-excel', class: 'icon-excel' };
-    case 'png': case 'jpg': return { icon: 'mdi-image', class: 'icon-image' };
-    case 'zip': return { icon: 'mdi-zip-box', class: 'icon-archive' };
+    case 'png': case 'jpg': case 'jpeg': return { icon: 'mdi-image', class: 'icon-image' };
+    case 'zip': case 'rar': return { icon: 'mdi-zip-box', class: 'icon-archive' };
     default: return { icon: 'mdi-file-document-outline', class: 'file-icon-bg' };
   }
 }
@@ -176,36 +164,20 @@ function getIconConfig(item: any) {
 
 <style scoped>
 .file-list-container { background: white; min-height: 300px; }
-
-.file-row {
-  display: flex; align-items: center; padding: 12px 20px;
-  border-bottom: 1px solid #f1f3f5; cursor: pointer; transition: .2s;
-}
+.file-row { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #f1f3f5; cursor: pointer; transition: .2s; }
 .file-row:hover { background: #f8fafc; }
-
 .file-main { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
 .file-text { flex: 1; min-width: 0; }
-.file-name-full { 
-  font-weight: 600; font-size: 14px; color: #334155; 
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.file-name-full { font-weight: 600; font-size: 14px; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-meta { display: flex; align-items: center; margin-top: 2px; }
-
-.file-icon {
-  width: 40px; height: 40px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-}
+.file-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 .large-icon { width: 80px; height: 80px; border-radius: 20px; }
-
-/* Colors - Identik dengan Dashboard */
 .folder-icon { background: #fff7ed; color: #ea580c; }
 .icon-pdf { background: #fef2f2; color: #dc2626; }
 .icon-excel { background: #f0fdf4; color: #16a34a; }
 .icon-image { background: #faf5ff; color: #9333ea; }
 .icon-archive { background: #fffbeb; color: #d97706; }
 .file-icon-bg { background: #f8fafc; color: #64748b; }
-
 .cursor-pointer { cursor: pointer; }
 .hover-underline:hover { text-decoration: underline; }
 </style>
-
