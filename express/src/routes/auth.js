@@ -67,7 +67,7 @@ router.post("/login", async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: "1d" },
     );
 
     // Sekarang user.quota dan user.used_quota sudah ada isinya karena sudah di-SELECT

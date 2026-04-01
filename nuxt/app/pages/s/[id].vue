@@ -123,7 +123,7 @@
                     <v-chip
                       v-if="item.type === 'folder'"
                       size="x-small"
-                      color="orange-darken-2"
+                      color="orange-darken-4"
                       variant="tonal"
                       class="font-weight-bold"
                     >
@@ -277,6 +277,58 @@ function getIconConfig(item: any) {
     case "zip":
     case "rar": return { icon: "mdi-zip-box", class: "archive-bg" };
     default: return { icon: "mdi-file-document-outline", class: "default-bg" };
+
+
+     case "apk":
+      return { icon: "mdi-android", class: "icon-android" };
+    case "enc":
+      return { icon: "mdi-cog", class: "icon-enc" };
+    case "doc":
+    case "docx":
+      return { icon: "mdi-file-word", class: "icon-word" };
+    case "csv":
+      return { icon: "mdi-file-excel", class: "icon-excel" };
+    case "ppt":
+    case "pptx":
+      return { icon: "mdi-file-powerpoint", class: "icon-ppt" };
+    case "txt":
+    case "rtf":
+      return { icon: "mdi-file-document-edit", class: "icon-text" };
+    case "mdf":
+    case "ldf":
+      return { icon: "mdi-database", class: "icon-database" };
+    case "gif":
+    case "svg":
+    case "webp":
+      return { icon: "mdi-image", class: "icon-image" };
+    case "sql":
+    case "db":
+    case "sqlite":
+      return { icon: "mdi-database", class: "icon-db" };
+    case "js":
+    case "ts":
+    case "html":
+    case "css":
+    case "json":
+    case "php":
+      return { icon: "mdi-code-json", class: "icon-code" };
+    case "exe":
+    case "msi":
+      return { icon: "mdi-application-cog", class: "icon-app" };
+    case "bat":
+    case "sh":
+    case "cmd":
+      return { icon: "mdi-console-line", class: "icon-script" };
+    case "mp4":
+    case "mkv":
+    case "avi":
+    case "mov":
+      return { icon: "mdi-video", class: "icon-video" };
+    case "mp3":
+    case "wav":
+    case "ogg":
+      return { icon: "mdi-music", class: "icon-audio" };
+    
   }
 }
 </script>
@@ -291,8 +343,8 @@ function getIconConfig(item: any) {
 }
 
 .breadcrumb-nav {
-  font-size: 0.85rem;
-  color: #757575;
+  font-size: 0.95rem;
+  color: #05928ba9;
 }
 
 .path-item {
@@ -311,9 +363,10 @@ function getIconConfig(item: any) {
   pointer-events: none;
 }
 
+/* FILE AREA */
 .file-area {
-  min-height: 300px;
-  max-height: 550px;
+  min-height: 220px;   /* sebelumnya 300px */
+  max-height: 420px;   /* sebelumnya 550px */
   overflow-y: auto;
 }
 
@@ -377,6 +430,51 @@ function getIconConfig(item: any) {
 
 .hover-primary:hover {
   color: rgb(var(--v-theme-primary)) !important;
+}
+
+.icon-db {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.icon-code {
+  background: #fef3c7;
+  color: #b45309;
+}
+.icon-app {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.icon-script {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.icon-video {
+  background: #ecfeff;
+  color: #0891b2;
+}
+.icon-audio {
+  background: #fdf4ff;
+  color: #a21caf;
+}
+.icon-ppt {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.icon-text {
+  background: #f8fafc;
+  color: #64748b;
+}
+.icon-android {
+  background: #f8fafc;
+  color: #089b20;
+}
+.icon-enc {
+  background: #f8fafc;
+  color: #717772;
+}
+.icon-database {
+  background: #f8fafc;
+  color: #b443ab;
 }
 
 .file-area::-webkit-scrollbar {

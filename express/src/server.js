@@ -142,6 +142,79 @@ app.get("/sf/:shareId", async (req, res) => {
   }
 });
 
+app.get("/api/public/folder-content/:id", async (req, res) => {
+  try {
+    const folderId = req.params.id;
+
+    const folders = await pool.query(
+      `SELECT id, name, share_id, 'folder' as type
+       FROM folders
+       WHERE parent_id = $1
+       ORDER BY name ASC`,
+      [folderId]
+    );
+
+    const files = await pool.query(
+      `SELECT id, original_name as name, size, share_id, 'file' as type
+       FROM files
+       WHERE folder_id = $1
+       ORDER BY original_name ASC`,
+      [folderId]
+    );
+
+    res.json([...folders.rows, ...files.rows]);
+  } catch (err) {
+    console.error("ERROR FOLDER CONTENT:", err);
+    res.status(500).json({ error: "failed get folder content" });
+  }
+});
+
+
+/* ==========================================================
+   🔥 DOWNLOAD FOLDER BY ID (UNTUK SUBFOLDER TANPA SHARE_ID)
+   ========================================================== */
+app.get("/api/public/download-folder/:folderId", async (req, res) => {
+  try {
+    const { folderId } = req.params;
+
+    // ambil folder
+    const folderResult = await pool.query(
+      `SELECT * FROM folders WHERE id = $1`,
+      [folderId]
+    );
+
+    const folder = folderResult.rows[0];
+    if (!folder) return res.status(404).send("Folder not found");
+
+    // ambil semua file dalam folder (RECURSIVE kalau mau advanced)
+    const files = await pool.query(
+      `SELECT * FROM files WHERE folder_id = $1`,
+      [folderId]
+    );
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${folder.name}.zip"`
+    );
+
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    for (const file of files.rows) {
+      const filePath = path.resolve(file.path);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: file.original_name });
+      }
+    }
+
+    await archive.finalize();
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error download folder");
+  }
+});
+
 
 /* ==========================================================
     🔥 NEW: DOWNLOAD INDIVIDUAL FILE INSIDE PUBLIC FOLDER
@@ -151,35 +224,56 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
   try {
     const { fileId } = req.params;
 
-    // Ambil info file & cek status is_public folder induknya
+    // 🔥 ambil file + parent chain
     const result = await pool.query(
-      `SELECT f.*, fold.is_public as folder_public 
-       FROM files f
-       LEFT JOIN folders fold ON f.folder_id = fold.id
-       WHERE f.id = $1`,
+      `
+      WITH RECURSIVE folder_tree AS (
+        SELECT id, parent_id, is_public
+        FROM folders
+        WHERE id = (SELECT folder_id FROM files WHERE id = $1)
+
+        UNION ALL
+
+        SELECT f.id, f.parent_id, f.is_public
+        FROM folders f
+        INNER JOIN folder_tree ft ON ft.parent_id = f.id
+      )
+      SELECT 
+        f.*, 
+        EXISTS (
+          SELECT 1 FROM folder_tree WHERE is_public = true
+        ) as is_allowed
+      FROM files f
+      WHERE f.id = $1
+      `,
       [fileId]
     );
 
     const file = result.rows[0];
     if (!file) return res.status(404).send("File not found");
 
-    // Keamanan: Izinkan jika file is_public ATAU folder induknya is_public
-    if (file.is_public || file.folder_public) {
-      const filePath = path.resolve(file.path);
-      if (!fs.existsSync(filePath)) return res.status(404).send("File missing on server");
-
-      res.setHeader("Content-Type", file.mime_type);
-      res.setHeader("Content-Disposition", `attachment; filename="${file.original_name}"`);
-      fs.createReadStream(filePath).pipe(res);
-    } else {
-      res.status(403).send("Unauthorized access to this file");
+    // 🔥 cek akses
+    if (!file.is_allowed && !file.is_public) {
+      return res.status(403).send("Unauthorized access to this file");
     }
+
+    const filePath = path.resolve(file.path);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("File missing on server");
+    }
+
+    res.setHeader("Content-Type", file.mime_type);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${file.original_name}"`
+    );
+
+    fs.createReadStream(filePath).pipe(res);
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal server error");
   }
 });
-
 
 /* =========================
     START SERVER
