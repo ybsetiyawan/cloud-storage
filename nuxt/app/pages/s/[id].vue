@@ -543,7 +543,7 @@ function getIconConfig(item: any) {
 <style scoped>
 .shared-page-bg {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  min-height: 100vh;
+  min-height: 95vh;
 }
 
 /* ========================================================= */
