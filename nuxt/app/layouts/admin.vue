@@ -1,22 +1,22 @@
 <template>
-  <v-app class="app-container-dark">
-    <!-- Sidebar / Navigation Drawer Modern Dark -->
+  <v-app class="app-container-light">
+    <!-- Sidebar / Navigation Drawer Modern Light -->
     <v-navigation-drawer
       v-model="drawer"
       :permanent="$vuetify.display.mdAndUp"
       elevation="0"
       width="270"
-      class="sidebar-dark border-right-dark"
+      class="sidebar-light border-right-light"
     >
-      <!-- Logo Brand Header dengan Animasi Denyut Jelas -->
+      <!-- Logo Brand Header dengan Animasi Denyut Halus -->
       <div class="sidebar-header pa-6 d-flex align-center justify-space-between">
         <div class="d-flex align-center">
-          <div class="brand-icon-wrapper-dark mr-3 d-flex align-center justify-center elevation-4 pulse-animation">
-            <v-icon color="white" size="20">mdi-shield-key-outline</v-icon>
+          <div class="brand-icon-wrapper-light mr-3 d-flex align-center justify-center elevation-2 pulse-animation-light">
+            <v-icon color="white" size="20">mdi-google-drive</v-icon>
           </div>
           <div class="brand-text-wrapper d-flex align-center">
-            <span class="text-subtitle-1 font-weight-black text-white" style="letter-spacing: 1px">EDPSBY</span>
-            <span class="text-subtitle-1 font-weight-black text-red-accent-3 ml-1" style="letter-spacing: 1px">DRIVE</span>
+            <span class="text-subtitle-1 font-weight-black text-blue-darken-4" style="letter-spacing: 1px">EDPSBY</span>
+            <span class="text-subtitle-1 font-weight-black text-red-darken-2 ml-1" style="letter-spacing: 1px">DRIVE</span>
           </div>
         </div>
       </div>
@@ -24,35 +24,35 @@
       <v-divider class="mx-5 mb-3 border-opacity-25"></v-divider>
 
       <!-- Navigation Menu dengan Animasi Hover Geser -->
-      <v-list nav class="px-4 menu-list-dark" density="comfortable">
+      <v-list nav class="px-4 menu-list-light" density="comfortable">
         <v-list-item
           to="/admin/files"
           prepend-icon="mdi-folder-multiple"
           title="File Manager"
           rounded="xl"
-          color="blue-accent-3"
+          color="blue-darken-2"
           class="mb-2 py-3 px-4 font-weight-bold menu-item-animated"
         />
 
         <!-- Storage Card Widget dengan Efek Kilau Cahaya (Shimmer Animation) -->
-        <div class="storage-widget-dark pa-4 mt-6 mx-1 rounded-2xl border-dark position-relative overflow-hidden shimmer-box">
-          <div class="shimmer-effect"></div>
+        <div class="storage-widget-light pa-4 mt-6 mx-1 rounded-2xl border-light position-relative overflow-hidden shimmer-box-light">
+          <div class="shimmer-effect-light"></div>
           <div class="d-flex justify-space-between align-center mb-2 position-relative" style="z-index: 2;">
             <div class="d-flex align-center">
-              <v-icon size="14" color="blue-lighten-2" class="mr-1">mdi-database</v-icon>
-              <span class="text-caption font-weight-bold text-grey-lighten-2">Kapasitas Disk</span>
+              <v-icon size="14" color="blue-darken-2" class="mr-1">mdi-database</v-icon>
+              <span class="text-caption font-weight-bold text-grey-darken-3">Kapasitas Disk</span>
             </div>
-            <span class="text-caption font-weight-bold text-blue-lighten-3">{{ storagePercentage }}%</span>
+            <span class="text-caption font-weight-bold text-blue-darken-2">{{ storagePercentage }}%</span>
           </div>
           <v-progress-linear
             :model-value="storagePercentage"
             :color="storageColor"
             rounded
             height="8"
-            class="bg-grey-darken-4 mb-2 position-relative"
+            class="bg-grey-lighten-3 mb-2 position-relative"
             style="z-index: 2;"
           ></v-progress-linear>
-          <div class="text-caption text-grey-lighten-1 font-weight-medium position-relative" style="font-size: 11px !important; z-index: 2;">
+          <div class="text-caption text-grey-darken-1 font-weight-medium position-relative" style="font-size: 11px !important; z-index: 2;">
             {{ formatBytes(userData.used_quota) }} / {{ formatBytes(userData.quota) }}
           </div>
         </div>
@@ -61,29 +61,29 @@
       <!-- Footer Badge & Copyright -->
       <template v-slot:append>
         <div class="pa-5 text-center">
-          <div class="text-grey-darken-2 font-weight-medium" style="font-size: 10px; letter-spacing: 0.3px;">
+          <div class="text-grey-darken-1 font-weight-medium" style="font-size: 10px; letter-spacing: 0.3px;">
             Copyright © @Ybs - EDPSBY 2026
           </div>
         </div>
       </template>
     </v-navigation-drawer>
 
-    <!-- App Bar / Top Navbar Modern Dark dengan Efek Garis Cahaya Animasi Berjalan -->
-    <v-app-bar flat border="bottom" color="#111827" height="75" class="px-6 navbar-dark position-relative overflow-hidden">
-      <div class="top-bar-glow-line"></div>
+    <!-- App Bar / Top Navbar Modern Light dengan Efek Garis Cahaya Animasi Berjalan -->
+    <v-app-bar flat border="bottom" color="white" height="75" class="px-6 navbar-light position-relative overflow-hidden">
+      <div class="top-bar-glow-line-light"></div>
       <v-app-bar-nav-icon
         v-if="!$vuetify.display.mdAndUp"
         @click="drawer = !drawer"
-        class="text-grey-lighten-3"
+        class="text-grey-darken-3"
       />
       
       <div class="d-flex align-center ml-1 fade-in">
         <div>
           <div class="d-flex align-center">
-            <span class="text-subtitle-1 font-weight-medium text-grey-lighten-4">
+            <span class="text-subtitle-1 font-weight-medium text-blue-darken-2">
               {{ greeting }},
             </span>
-            <span class="text-subtitle-1 font-weight-black text-blue-lighten-3 ml-1">
+            <span class="text-subtitle-1 font-weight-black text-grey-darken-2 ml-1">
               {{ userData.username }}
             </span>
           </div>
@@ -95,17 +95,17 @@
       <!-- User Profile Menu Dropdown -->
       <v-menu location="bottom end" transition="slide-y-transition">
         <template v-slot:activator="{ props }">
-          <v-btn v-bind="props" icon variant="flat" class="profile-btn-dark border-dark rounded-xl pa-1">
+          <v-btn v-bind="props" icon variant="flat" class="profile-btn-light border-light rounded-xl pa-1">
             <v-avatar size="36" class="rounded-lg">
               <v-img
-                :src="`https://ui-avatars.com/api/?name=${userData.username}&background=1e3a8a&color=fff&bold=true`"
+                :src="`https://ui-avatars.com/api/?name=${userData.username}&background=2563eb&color=fff&bold=true`"
               />
             </v-avatar>
           </v-btn>
         </template>
 
-        <v-card width="220" class="mt-2 rounded-2xl elevation-12 pa-1 bg-grey-darken-4" border>
-          <v-list density="compact" nav class="pa-1 bg-transparent text-white">
+        <v-card width="220" class="mt-2 rounded-2xl elevation-8 pa-1 bg-white border-light">
+          <v-list density="compact" nav class="pa-1 bg-transparent text-grey-darken-4">
             <v-list-item
               prepend-icon="mdi-account-circle-outline"
               title="Profil User"
@@ -124,7 +124,7 @@
               title="Logout Sistem"
               color="error"
               rounded="lg"
-              class="py-2 text-red-accent-3 font-weight-bold"
+              class="py-2 text-error font-weight-bold"
               @click="handleLogout"
             />
           </v-list>
@@ -133,7 +133,7 @@
     </v-app-bar>
 
     <!-- Main Content Area -->
-    <v-main class="bg-dark-main">
+    <v-main class="bg-light-main">
       <v-container fluid class="pa-6">
         <slot />
       </v-container>
@@ -172,9 +172,9 @@ const storagePercentage = computed(() => {
 });
 
 const storageColor = computed(() => {
-  if (storagePercentage.value > 90) return "red-accent-3";
-  if (storagePercentage.value > 70) return "orange-accent-3";
-  return "blue-accent-3";
+  if (storagePercentage.value > 90) return "error";
+  if (storagePercentage.value > 70) return "warning";
+  return "blue-darken-2";
 });
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -207,42 +207,42 @@ function handleLogout() {
 </script>
 
 <style scoped>
-.app-container-dark {
-  background-color: #0b0f19;
+.app-container-light {
+  background-color: #f8fafc;
 }
 
-.bg-dark-main {
-  background-color: #0b0f19 !important;
+.bg-light-main {
+  background-color: #f8fafc !important;
 }
 
-.sidebar-dark {
-  background: #111827 !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+.sidebar-light {
+  background: #ffffff !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-.border-right-dark {
-  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+.border-right-light {
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-.border-dark {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+.border-light {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
-.brand-icon-wrapper-dark {
+.brand-icon-wrapper-light {
   width: 38px;
   height: 38px;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border-radius: 12px;
 }
 
-/* Animasi Denyut Jelas pada Logo Sidebar */
-.pulse-animation {
-  animation: pulseGlow 2s infinite ease-in-out;
+/* Animasi Denyut Jelas pada Logo Sidebar (Light Mode) */
+.pulse-animation-light {
+  animation: pulseGlowLight 2s infinite ease-in-out;
 }
-@keyframes pulseGlow {
+@keyframes pulseGlowLight {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
   }
   50% {
     transform: scale(1.05);
@@ -260,15 +260,15 @@ function handleLogout() {
 }
 .menu-item-animated:hover {
   transform: translateX(6px);
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: rgba(37, 99, 235, 0.04) !important;
 }
 
 /* Animasi Kilau Cahaya (Shimmer) pada Widget Storage */
-.shimmer-box {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.shimmer-box-light {
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
-.shimmer-effect {
+.shimmer-effect-light {
   position: absolute;
   top: 0;
   left: -150%;
@@ -277,7 +277,7 @@ function handleLogout() {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(59, 130, 246, 0.08),
+    rgba(37, 99, 235, 0.06),
     transparent
   );
   animation: shimmerAnim 4s infinite linear;
@@ -291,17 +291,17 @@ function handleLogout() {
   }
 }
 
-/* Navbar Dark dengan Garis Cahaya Berjalan */
-.navbar-dark {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+/* Navbar Light dengan Garis Cahaya Berjalan */
+.navbar-light {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
-.top-bar-glow-line {
+.top-bar-glow-line-light {
   position: absolute;
   top: 0;
   left: 0;
   height: 3px;
   width: 100%;
-  background: linear-gradient(90deg, transparent, #3b82f6, #60a5fa, #93c5fd, transparent);
+  background: linear-gradient(90deg, transparent, #2563eb, #60a5fa, #93c5fd, transparent);
   animation: shimmerLine 3s infinite linear;
 }
 @keyframes shimmerLine {
@@ -328,20 +328,20 @@ function handleLogout() {
   }
 }
 
-/* Active Menu Styling Dark Mode */
+/* Active Menu Styling Light Mode */
 .v-list-item--active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(29, 78, 216, 0.15) 100%) !important;
-  color: #60a5fa !important;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(29, 78, 216, 0.08) 100%) !important;
+  color: #2563eb !important;
   font-weight: 700 !important;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid #2563eb;
 }
 
-.profile-btn-dark {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+.profile-btn-light {
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
   transition: all 0.2s ease;
 }
-.profile-btn-dark:hover {
-  background: rgba(255, 255, 255, 0.08);
+.profile-btn-light:hover {
+  background: #f1f5f9;
 }
 </style>

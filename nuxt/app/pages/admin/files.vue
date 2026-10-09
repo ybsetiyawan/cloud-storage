@@ -1,25 +1,24 @@
 <template>
-  <v-container fluid class="pa-6 file-manager-container-dark">
+  <v-container fluid class="pa-6 file-manager-container-light">
     <!-- Header Modern Section -->
     <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-4">
       <div>
         <div class="d-flex align-center gap-2 mb-1">
-          <h2 class="text-h5 font-weight-bold text-white tracking-tight">File Manager</h2>
-          <v-chip size="x-small" variant="flat" color="blue-darken-3" class="text-blue-lighten-3 font-weight-bold">PRO</v-chip>
+          <h2 class="text-h5 font-weight-bold text-grey-darken-4 tracking-tight">File Manager</h2>
         </div>
         
         <!-- Breadcrumb Pills -->
         <div class="breadcrumb-container mt-2">
-          <div class="crumb-pill-dark root" @click="goRoot">
-            <v-icon size="16" class="mr-1 text-blue-lighten-3">mdi-home-variant</v-icon>
+          <div class="crumb-pill-light root" @click="goRoot">
+            <v-icon size="16" class="mr-1 text-blue-darken-2">mdi-home-variant</v-icon>
             <span>Root</span>
           </div>
           <template v-for="(b, i) in displayBreadcrumbs" :key="i">
-            <v-icon size="14" class="mx-1 text-grey-darken-2">mdi-chevron-right</v-icon>
-            <div v-if="b === '...'" class="crumb-pill-dark dots">...</div>
+            <v-icon size="14" class="mx-1 text-grey-lighten-1">mdi-chevron-right</v-icon>
+            <div v-if="b === '...'" class="crumb-pill-light dots">...</div>
             <div
               v-else
-              class="crumb-pill-dark"
+              class="crumb-pill-light"
               :class="{ active: i === displayBreadcrumbs.length - 1 }"
               @click="handleBreadcrumbClick(i)"
             >
@@ -31,13 +30,13 @@
 
       <!-- Action Buttons -->
       <div class="d-flex align-center gap-2 flex-wrap">
-        <v-btn size="small" variant="outlined" class="text-none px-4 rounded-pill border-dark bg-dark-card text-grey-lighten-2 action-btn" @click="createFolder">
-          <v-icon start color="amber-lighten-2">mdi-folder-plus</v-icon> Add Folder
+        <v-btn size="small" variant="outlined" class="text-none px-4 rounded-pill border-light bg-white text-grey-darken-3 action-btn" @click="createFolder">
+          <v-icon start color="amber-darken-2">mdi-folder-plus</v-icon> Add Folder
         </v-btn>
-        <v-btn size="small" variant="outlined" class="text-none px-4 rounded-pill border-dark bg-dark-card text-grey-lighten-2 action-btn" @click="uploadFiles('folder')">
-          <v-icon start color="orange-lighten-2">mdi-folder-upload</v-icon> Upload Folder
+        <v-btn size="small" variant="outlined" class="text-none px-4 rounded-pill border-light bg-white text-grey-darken-3 action-btn" @click="uploadFiles('folder')">
+          <v-icon start color="orange-darken-2">mdi-folder-upload</v-icon> Upload Folder
         </v-btn>
-        <v-btn size="small" color="blue-accent-3" class="text-none px-5 rounded-pill elevation-0 font-weight-medium text-white action-btn" @click="uploadFiles('file')">
+        <v-btn size="small" color="blue-darken-2" class="text-none px-5 rounded-pill elevation-0 font-weight-medium text-white action-btn" @click="uploadFiles('file')">
           <v-icon start>mdi-cloud-upload</v-icon> Upload File
         </v-btn>
       </div>
@@ -51,57 +50,68 @@
         placeholder="Cari file atau folder..."
         density="comfortable"
         variant="outlined"
-        bg-color="#111827"
-        color="white"
+        bg-color="white"
+        color="blue-darken-2"
         hide-details
-        class="rounded-xl search-input-dark flex-grow-1 elevation-0"
+        class="rounded-xl search-input-light flex-grow-1 elevation-0"
         style="max-width: 420px;"
       />
     </div>
 
     <!-- Bulk Action & Select All Bar -->
     <v-slide-y-transition>
-      <div v-if="selectedItems.length > 0" class="bulk-bar-dark d-flex align-center px-5 py-3 mb-4 elevation-2 rounded-xl">
+      <div v-if="selectedItems.length > 0" class="bulk-bar-light d-flex align-center px-5 py-3 mb-4 elevation-1 rounded-xl flex-wrap gap-2">
         <v-checkbox
           v-model="isAllSelected"
           :indeterminate="isIndeterminate"
           @click="toggleSelectAll"
           density="compact"
           hide-details
-          color="blue-accent-3"
-          class="mr-2 text-white"
+          color="blue-darken-2"
+          class="mr-2 text-grey-darken-4"
           label="Pilih Semua"
         />
-        <div class="text-subtitle-2 font-weight-bold text-amber-accent-2 ml-2">
+        <div class="text-subtitle-2 font-weight-bold text-blue-darken-3 ml-2">
           {{ selectedItems.length }} item dipilih
         </div>
         <v-spacer />
-        <v-btn 
-          size="small" 
-          color="error" 
-          variant="flat" 
-          class="text-none mr-2 rounded-pill px-4 font-weight-medium"
-          @click="confirmDelete(selectedItems)"
-        >
-          <v-icon start size="16">mdi-delete-sweep</v-icon> Hapus Semua ({{ selectedItems.length }})
-        </v-btn>
-        <v-btn size="small" variant="text" class="text-none text-grey-lighten-2" @click="clearSelection">Batal</v-btn>
+        <div class="d-flex align-center gap-2">
+          <v-btn 
+            size="small" 
+            color="blue-darken-2" 
+            variant="flat" 
+            class="text-none rounded-pill px-4 font-weight-medium"
+            @click="downloadSelectedItems(selectedItems)"
+          >
+            <v-icon start size="16">mdi-download-multiple</v-icon> Download ({{ selectedItems.length }})
+          </v-btn>
+          <v-btn 
+            size="small" 
+            color="error" 
+            variant="flat" 
+            class="text-none rounded-pill px-4 font-weight-medium"
+            @click="confirmDelete(selectedItems)"
+          >
+            <v-icon start size="16">mdi-delete-sweep</v-icon> Hapus ({{ selectedItems.length }})
+          </v-btn>
+          <v-btn size="small" variant="text" class="text-none text-grey-darken-2" @click="clearSelection">Batal</v-btn>
+        </div>
       </div>
     </v-slide-y-transition>
 
     <!-- Main Container Card -->
-    <v-card class="file-card-dark elevation-1 rounded-2xl border-dark bg-dark-card">
+    <v-card class="file-card-light elevation-1 rounded-2xl border-light bg-white">
       <div class="file-list custom-scrollbar pa-3">
         <div v-if="loading" class="text-center py-16">
-          <v-progress-circular indeterminate color="blue-accent-3" size="44" width="3" />
+          <v-progress-circular indeterminate color="blue-darken-2" size="44" width="3" />
         </div>
 
         <div
           v-else-if="filteredItems.length === 0"
-          class="text-center py-16 text-grey-darken-1"
+          class="text-center py-16 text-grey-lighten-1"
         >
-          <v-icon size="64" class="mb-3 text-grey-darken-2">mdi-folder-open-outline</v-icon>
-          <div class="text-subtitle-1 font-weight-medium text-grey-lighten-2">Tidak ada file atau folder</div>
+          <v-icon size="64" class="mb-3 text-grey-lighten-2">mdi-folder-open-outline</v-icon>
+          <div class="text-subtitle-1 font-weight-medium text-grey-darken-3">Tidak ada file atau folder</div>
           <div class="text-caption text-grey mt-1">Mulai dengan mengunggah file baru atau buat folder.</div>
         </div>
 
@@ -110,7 +120,7 @@
           <div
             v-for="item in filteredItems"
             :key="item.id"
-            class="file-row-dark rounded-xl mb-2 px-4 py-3 align-center"
+            class="file-row-light rounded-xl mb-2 px-4 py-3 align-center"
             :class="{ selected: isSelected(item) }"
             @click="handleClick(item)"
             @dblclick="handleDoubleClick(item)"
@@ -121,7 +131,7 @@
                 @click.stop
                 density="compact"
                 hide-details
-                color="blue-accent-3"
+                color="blue-darken-2"
               />
 
               <!-- Preview Thumbnail atau Icon Full Color -->
@@ -139,45 +149,45 @@
 
               <div class="file-text">
                 <div class="d-flex align-center">
-                  <div class="file-name-full text-truncate font-weight-semibold text-grey-lighten-2">
+                  <div class="file-name-full text-truncate font-weight-semibold text-grey-darken-3">
                     {{ item.name || item.original_name }}
                   </div>
                   <v-tooltip v-if="item.is_public" text="Link Shared Aktif" location="top">
                     <template v-slot:activator="{ props }">
-                      <v-icon v-bind="props" size="16" color="blue-lighten-3" class="ml-2">mdi-share-check</v-icon>
+                      <v-icon v-bind="props" size="16" color="blue-darken-2" class="ml-2">mdi-share-check</v-icon>
                     </template>
                   </v-tooltip>
                 </div>
                 <div class="file-meta">
-                  <v-chip v-if="item.type !== 'folder'" density="compact" size="x-small" variant="tonal" class="mr-2 font-weight-bold px-2 text-blue-lighten-3 bg-blue-grey-darken-4">
+                  <v-chip v-if="item.type !== 'folder'" density="compact" size="x-small" variant="tonal" class="mr-2 font-weight-bold px-2 text-blue-darken-3 bg-blue-lighten-5">
                     {{ formatSize(item.size) }}
                   </v-chip>
-                  <span v-else class="mr-2 text-amber-accent-2 font-weight-bold text-caption">Folder</span>
-                  <span class="text-grey">• {{ formatDate(item.created_at) }}</span>
+                  <span v-else class="mr-2 text-amber-darken-3 font-weight-bold text-caption">Folder</span>
+                  <span class="text-grey-darken-1">• {{ formatDate(item.created_at) }}</span>
                 </div>
               </div>
             </div>
 
             <div class="file-actions">
-              <v-btn v-if="isImageFile(item)" icon size="small" variant="text" color="grey-lighten-2" class="rounded-circle" @click.stop="openPreview(item)">
+              <v-btn v-if="isImageFile(item)" icon size="small" variant="text" color="purple" class="rounded-circle" @click.stop="openPreview(item)">
                 <v-icon size="18">mdi-eye-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Preview Gambar</v-tooltip>
               </v-btn>
-              <v-btn icon size="small" variant="text" color="grey-lighten-2" class="rounded-circle" @click.stop="handleDownload(item)">
+              <v-btn icon size="small" variant="text" color="blue-darken-3" class="rounded-circle" @click.stop="handleDownload(item)">
                 <v-icon size="18">mdi-download-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Download</v-tooltip>
               </v-btn>
-              <v-btn icon size="small" variant="text" color="grey-lighten-2" class="rounded-circle" @click.stop="openRenameDialog(item)">
+              <v-btn icon size="small" variant="text" color="green" class="rounded-circle" @click.stop="openRenameDialog(item)">
                 <v-icon size="18">mdi-pencil-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Ubah Nama</v-tooltip>
               </v-btn>
-              <v-btn icon size="small" variant="text" color="grey-lighten-2" class="rounded-circle" @click.stop="shareItems([item])">
-                <v-icon size="18" :color="item.is_public ? 'blue-lighten-3' : ''">
+              <v-btn icon size="small" variant="text" color="grey-darken-3" class="rounded-circle" @click.stop="shareItems([item])">
+                <v-icon size="18" :color="item.is_public ? 'blue-darken-2' : ''">
                   {{ item.is_public ? "mdi-link-variant" : "mdi-share-variant-outline" }}
                 </v-icon>
                 <v-tooltip activator="parent" location="top">Bagikan Link</v-tooltip>
               </v-btn>
-              <v-btn icon size="small" variant="text" color="red-accent-3" class="rounded-circle" @click.stop="confirmDelete([item])">
+              <v-btn icon size="small" variant="text" color="error" class="rounded-circle" @click.stop="confirmDelete([item])">
                 <v-icon size="18">mdi-delete-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Hapus</v-tooltip>
               </v-btn>
@@ -189,32 +199,32 @@
 
     <!-- Dialog Preview Gambar dengan Zoom In/Out -->
     <v-dialog v-model="showPreviewDialog" max-width="850" transition="dialog-bottom-transition">
-      <v-card class="rounded-2xl overflow-hidden shadow-lg border-dark bg-grey-darken-4">
-        <v-card-title class="d-flex justify-space-between align-center px-6 py-4 bg-black text-white">
+      <v-card class="rounded-2xl overflow-hidden shadow-lg border-light bg-white">
+        <v-card-title class="d-flex justify-space-between align-center px-6 py-4 bg-grey-lighten-4 text-grey-darken-4">
           <span class="text-subtitle-1 text-truncate font-weight-medium">{{ previewItem?.name || previewItem?.original_name }}</span>
           <div class="d-flex align-center gap-1">
-            <v-btn icon variant="text" size="small" color="white" @click="zoomOut">
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomOut">
               <v-icon>mdi-magnify-minus-outline</v-icon>
               <v-tooltip activator="parent" location="bottom">Zoom Out</v-tooltip>
             </v-btn>
-            <span class="text-caption px-1 text-grey-lighten-2 font-weight-mono" style="min-width: 48px; text-align: center;">{{ Math.round(zoomScale * 100) }}%</span>
-            <v-btn icon variant="text" size="small" color="white" @click="zoomIn">
+            <span class="text-caption px-1 text-grey-darken-2 font-weight-mono" style="min-width: 48px; text-align: center;">{{ Math.round(zoomScale * 100) }}%</span>
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomIn">
               <v-icon>mdi-magnify-plus-outline</v-icon>
               <v-tooltip activator="parent" location="bottom">Zoom In</v-tooltip>
             </v-btn>
-            <v-btn icon variant="text" size="small" color="white" @click="resetZoom" class="ml-1">
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="resetZoom" class="ml-1">
               <v-icon>mdi-refresh</v-icon>
               <v-tooltip activator="parent" location="bottom">Reset Zoom</v-tooltip>
             </v-btn>
             <v-divider vertical class="mx-2 border-opacity-25" />
-            <v-btn icon variant="text" size="small" color="white" @click="showPreviewDialog = false">
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="showPreviewDialog = false">
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </div>
         </v-card-title>
 
         <v-card-text 
-          class="text-center pa-0 bg-black d-flex align-center justify-center overflow-hidden position-relative" 
+          class="text-center pa-0 bg-grey-lighten-5 d-flex align-center justify-center overflow-hidden position-relative" 
           style="height: 520px;"
           @wheel.prevent="handleWheelZoom"
         >
@@ -223,28 +233,28 @@
               v-if="previewUrl"
               :src="previewUrl"
               :style="{ transform: `scale(${zoomScale})`, transition: isDragging ? 'none' : 'transform 0.15s ease-out' }"
-              class="preview-zoomed-image rounded-xl"
+              class="preview-zoomed-image rounded-xl shadow-sm"
               alt="Preview"
             />
-            <v-progress-circular v-else indeterminate color="blue-accent-3" />
+            <v-progress-circular v-else indeterminate color="blue-darken-2" />
           </div>
         </v-card-text>
 
         <v-divider class="border-opacity-25"></v-divider>
-        <v-card-actions class="px-6 py-3 bg-grey-darken-4">
-          <div class="text-caption text-grey-lighten-1">Gunakan tombol kontrol zoom atau scroll mouse pada area gambar untuk memperbesar/memperkecil.</div>
+        <v-card-actions class="px-6 py-3 bg-white">
+          <div class="text-caption text-grey">Gunakan tombol kontrol zoom atau scroll mouse pada area gambar untuk memperbesar/memperkecil.</div>
           <v-spacer />
-          <v-btn color="blue-accent-3" variant="tonal" class="text-none px-5 rounded-pill font-weight-medium" @click="handleDownload(previewItem)">
+          <v-btn color="blue-darken-2" variant="tonal" class="text-none px-5 rounded-pill font-weight-medium" @click="handleDownload(previewItem)">
             <v-icon start>mdi-download-outline</v-icon> Download
           </v-btn>
-          <v-btn variant="plain" class="text-none px-4 text-grey-lighten-2" @click="showPreviewDialog = false">Tutup</v-btn>
+          <v-btn variant="plain" class="text-none px-4 text-grey-darken-2" @click="showPreviewDialog = false">Tutup</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Dialog Rename (Ganti Nama) Kustom Tanpa Localhost -->
+    <!-- Dialog Rename (Ganti Nama) Kustom -->
     <v-dialog v-model="showRenameDialog" max-width="400">
-      <v-card class="rounded-2xl pa-2 bg-grey-darken-4 border-dark text-white">
+      <v-card class="rounded-2xl pa-2 bg-white border-light text-grey-darken-4 elevation-4">
         <v-card-title class="font-weight-bold px-4 pt-4">Ubah Nama File/Folder</v-card-title>
         <v-card-text class="px-4">
           <v-text-field
@@ -253,30 +263,30 @@
             autofocus
             variant="outlined"
             density="comfortable"
-            bg-color="#111827"
-            color="white"
+            bg-color="white"
+            color="blue-darken-2"
             class="rounded-lg mt-1"
             @keyup.enter="submitRename"
           />
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
-          <v-btn variant="text" class="text-none text-grey-lighten-2" @click="showRenameDialog = false">Batal</v-btn>
-          <v-btn color="blue-accent-3" variant="flat" class="text-none rounded-pill px-6 font-weight-medium text-white" @click="submitRename">Simpan</v-btn>
+          <v-btn variant="text" class="text-none text-grey-darken-2" @click="showRenameDialog = false">Batal</v-btn>
+          <v-btn color="blue-darken-2" variant="flat" class="text-none rounded-pill px-6 font-weight-medium text-white" @click="submitRename">Simpan</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Dialog Konfirmasi Delete Kustom Tanpa Localhost -->
+    <!-- Dialog Konfirmasi Delete Kustom -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card class="rounded-2xl pa-4 bg-grey-darken-4 border-dark text-white">
-        <v-card-title class="font-weight-bold text-red-accent-3 px-2">Konfirmasi Hapus</v-card-title>
-        <v-card-text class="px-2 text-body-2 text-grey-lighten-2">
+      <v-card class="rounded-2xl pa-4 bg-white border-light text-grey-darken-4 elevation-4">
+        <v-card-title class="font-weight-bold text-error px-2">Konfirmasi Hapus</v-card-title>
+        <v-card-text class="px-2 text-body-2 text-grey-darken-2">
           Apakah Anda yakin ingin menghapus <b>{{ itemsToDelete.length }}</b> item yang dipilih? Tindakan ini tidak dapat dibatalkan.
         </v-card-text>
         <v-card-actions class="px-2 pb-2">
           <v-spacer />
-          <v-btn variant="text" class="text-none text-grey-lighten-2" @click="showDeleteDialog = false">Batal</v-btn>
+          <v-btn variant="text" class="text-none text-grey-darken-2" @click="showDeleteDialog = false">Batal</v-btn>
           <v-btn color="error" variant="flat" class="text-none rounded-pill px-6 font-weight-medium" @click="executeDelete">Ya, Hapus</v-btn>
         </v-card-actions>
       </v-card>
@@ -292,14 +302,14 @@
 
     <!-- Dialog Upload -->
     <v-dialog v-model="showUploadDialog" max-width="500" persistent scrollable>
-      <v-card class="rounded-2xl bg-grey-darken-4 border-dark text-white">
+      <v-card class="rounded-2xl bg-white border-light text-grey-darken-4 elevation-4">
         <v-card-title class="d-flex align-center justify-space-between py-4 px-6">
           <span class="text-subtitle-1 font-weight-bold">Uploading Files</span>
-          <v-chip size="small" color="blue-accent-3" class="font-weight-bold text-white">{{ uploadProgress.length }} Files</v-chip>
+          <v-chip size="small" color="blue-darken-2" class="font-weight-bold text-white">{{ uploadProgress.length }} Files</v-chip>
         </v-card-title>
         <v-divider class="border-opacity-25"></v-divider>
-        <div class="pa-4 bg-black">
-          <div class="d-flex justify-space-between text-caption mb-1 font-weight-bold">
+        <div class="pa-4 bg-grey-lighten-5">
+          <div class="d-flex justify-space-between text-caption mb-1 font-weight-bold text-grey-darken-3">
             <span>Total Progress</span>
             <span>{{ Math.round(overallProgress) }}%</span>
           </div>
@@ -308,19 +318,19 @@
         <v-divider class="border-opacity-25"></v-divider>
         <v-card-text style="height: 280px;" class="pa-0">
           <v-list lines="one" class="pa-0 bg-transparent">
-            <v-list-item v-for="(f, idx) in uploadProgress" :key="idx" class="py-1 px-4 border-bottom-dark">
+            <v-list-item v-for="(f, idx) in uploadProgress" :key="idx" class="py-1 px-4 border-bottom-light">
               <template v-slot:prepend>
                 <v-icon size="18" :color="f.progress === 100 ? 'success' : 'grey'">
                   {{ f.progress === 100 ? 'mdi-check-circle' : 'mdi-file-upload-outline' }}
                 </v-icon>
               </template>
-              <v-list-item-title class="text-caption text-truncate font-weight-medium text-grey-lighten-2" style="max-width: 230px;">
+              <v-list-item-title class="text-caption text-truncate font-weight-medium text-grey-darken-3" style="max-width: 230px;">
                 {{ f.name }}
               </v-list-item-title>
               <template v-slot:append>
                 <div style="width: 110px" class="ml-4 d-flex align-center">
-                  <v-progress-linear :model-value="f.progress" height="6" :color="f.progress === 100 ? 'success' : 'blue-accent-3'" rounded />
-                  <span class="text-caption ml-2 font-weight-bold text-white" style="min-width: 32px">{{ f.progress }}%</span>
+                  <v-progress-linear :model-value="f.progress" height="6" :color="f.progress === 100 ? 'success' : 'blue-darken-2'" rounded />
+                  <span class="text-caption ml-2 font-weight-bold text-grey-darken-3" style="min-width: 32px">{{ f.progress }}%</span>
                 </div>
               </template>
             </v-list-item>
@@ -329,14 +339,14 @@
         <v-divider class="border-opacity-25"></v-divider>
         <v-card-actions class="px-6 py-3">
           <v-spacer />
-          <span class="text-caption text-grey-lighten-1">Mohon jangan tutup halaman ini...</span>
+          <span class="text-caption text-grey">Mohon jangan tutup halaman ini...</span>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Dialog Create Folder -->
     <v-dialog v-model="showCreateDialog" max-width="400">
-      <v-card class="rounded-2xl pa-2 bg-grey-darken-4 border-dark text-white">
+      <v-card class="rounded-2xl pa-2 bg-white border-light text-grey-darken-4 elevation-4">
         <v-card-title class="font-weight-bold px-4 pt-4">Buat Folder Baru</v-card-title>
         <v-card-text class="px-4">
           <v-text-field
@@ -345,16 +355,16 @@
             autofocus
             variant="outlined"
             density="comfortable"
-            bg-color="#111827"
-            color="white"
+            bg-color="white"
+            color="blue-darken-2"
             class="rounded-lg mt-1"
             @keyup.enter="submitCreateFolder"
           />
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
-          <v-btn variant="text" class="text-none text-grey-lighten-2" @click="showCreateDialog = false">Batal</v-btn>
-          <v-btn color="blue-accent-3" variant="flat" class="text-none rounded-pill px-6 font-weight-medium text-white" @click="submitCreateFolder">Buat</v-btn>
+          <v-btn variant="text" class="text-none text-grey-darken-2" @click="showCreateDialog = false">Batal</v-btn>
+          <v-btn color="blue-darken-2" variant="flat" class="text-none rounded-pill px-6 font-weight-medium text-white" @click="submitCreateFolder">Buat</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -531,7 +541,7 @@ function handleWheelZoom(e: WheelEvent) {
 
 function getIconConfig(item: any) {
   if (item.type === "folder")
-    return { icon: "mdi-folder", class: "folder-icon" };
+    return { icon: "mdi-folder", class: "folder-icon-light" };
   const fileName = item.name || item.original_name || "";
   const extension = fileName.split(".").pop()?.toLowerCase();
   switch (extension) {
@@ -547,7 +557,7 @@ function getIconConfig(item: any) {
     case "js": case "ts": case "html": case "css": case "json": case "php": return { icon: "mdi-code-json", class: "icon-code" };
     case "mp4": case "mkv": case "avi": case "mov": return { icon: "mdi-video", class: "icon-video" };
     case "mp3": case "wav": case "ogg": return { icon: "mdi-music", class: "icon-audio" };
-    default: return { icon: "mdi-file-document", class: "file-icon-bg" };
+    default: return { icon: "mdi-file-document", class: "file-icon-bg-light" };
   }
 }
 
@@ -625,7 +635,7 @@ async function shareItems(items: any[]) {
   }
 }
 
-// Fungsi pengganti konfirmasi delete bawaan browser
+// Fungsi konfirmasi delete
 function confirmDelete(items: any[]) {
   if (!items.length) return;
   itemsToDelete.value = items;
@@ -651,7 +661,36 @@ async function executeDelete() {
   }
 }
 
-// Fungsi pengganti prompt rename bawaan browser
+// Fungsi download tunggal
+async function handleDownload(item: any) {
+  if (!item) return;
+  const endpoint = item.type === "folder" ? `/folders/${item.id}/download` : `/files/${item.id}`;
+  try {
+    const response = await $api<Blob>(endpoint, { method: "GET", responseType: "blob" }) as Blob;
+    const downloadUrl = window.URL.createObjectURL(response);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = item.original_name || item.name || "download";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (err) {
+    alert("Download gagal");
+  }
+}
+
+// Fungsi download massal item yang tercentang
+async function downloadSelectedItems(items: any[]) {
+  if (!items.length) return;
+  for (const item of items) {
+    await handleDownload(item);
+  }
+  snackbarText.value = `${items.length} item berhasil didownload.`;
+  snackbar.value = true;
+}
+
+// Fungsi prompt rename
 function openRenameDialog(item: any) {
   itemToRename.value = item;
   renameValue.value = item.name || item.original_name;
@@ -703,6 +742,63 @@ function formatDate(d: any) {
   return d ? new Date(d).toLocaleDateString() : "-";
 }
 
+// function uploadFiles(mode = 'file') {
+//   const input = document.createElement("input");
+//   input.type = "file";
+//   if (mode === 'folder') {
+//     // @ts-ignore
+//     input.webkitdirectory = true;
+//   } else {
+//     input.multiple = true;
+//   }
+
+//   input.onchange = async () => {
+//     if (!input.files || input.files.length === 0) return;
+//     const filesArr = Array.from(input.files);
+//     uploadProgress.value = filesArr.map((f) => ({ name: f.webkitRelativePath || f.name, progress: 0 }));
+//     showUploadDialog.value = true;
+//     const token = localStorage.getItem("admin_token");
+
+//     for (let i = 0; i < filesArr.length; i++) {
+//       const file = filesArr[i];
+//       if (!file) continue;
+//       const formData = new FormData();
+//       if (currentFolderId.value) {
+//         formData.append("folder_id", String(currentFolderId.value));
+//       }
+//       const relativePath = file.webkitRelativePath || file.name;
+//       formData.append("fullPath", relativePath); 
+//       formData.append("files", file);
+//       const currentItem = uploadProgress.value[i];
+
+//       try {
+//         await new Promise<void>((resolve, reject) => {
+//           const xhr = new XMLHttpRequest();
+//           xhr.open("POST", "http://localhost:8090/api/files/upload");
+//           xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+//           xhr.upload.onprogress = (e) => {
+//             if (e.lengthComputable && currentItem) {
+//               currentItem.progress = Math.round((e.loaded / e.total) * 100);
+//             }
+//           };
+//           xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject());
+//           xhr.onerror = () => reject("Network error");
+//           xhr.send(formData);
+//         });
+//       } catch (err) {
+//         console.error(`Gagal upload: ${relativePath}`, err);
+//       }
+//     }
+
+//     setTimeout(() => {
+//       showUploadDialog.value = false;
+//       fetchFolderContent(currentFolderId.value);
+//     }, 800);
+//   };
+
+//   input.click();
+// }
+
 function uploadFiles(mode = 'file') {
   const input = document.createElement("input");
   input.type = "file";
@@ -720,6 +816,14 @@ function uploadFiles(mode = 'file') {
     showUploadDialog.value = true;
     const token = localStorage.getItem("admin_token");
 
+    // --- SOLUSI OTOMATIS HOST ---
+    // Mendeteksi domain/IP secara dinamis dari browser klien
+    const protocol = window.location.protocol; // http: atau https:
+    const hostname = window.location.hostname; // localhost atau 10.126.101.46
+    const backendPort = "8090"; // Sesuaikan port backend Anda
+    const uploadUrl = `${protocol}//${hostname}:${backendPort}/api/files/upload`;
+    // ----------------------------
+
     for (let i = 0; i < filesArr.length; i++) {
       const file = filesArr[i];
       if (!file) continue;
@@ -735,7 +839,7 @@ function uploadFiles(mode = 'file') {
       try {
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open("POST", "http://localhost:8090/api/files/upload");
+          xhr.open("POST", uploadUrl); // Menggunakan URL dinamis
           xhr.setRequestHeader("Authorization", `Bearer ${token}`);
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable && currentItem) {
@@ -760,45 +864,24 @@ function uploadFiles(mode = 'file') {
   input.click();
 }
 
-async function handleDownload(item: any) {
-  if (!item) return;
-  const endpoint = item.type === "folder" ? `/folders/${item.id}/download` : `/files/${item.id}`;
-  try {
-    const response = await $api<Blob>(endpoint, { method: "GET", responseType: "blob" }) as Blob;
-    const downloadUrl = window.URL.createObjectURL(response);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = item.original_name || item.name || "download";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (err) {
-    alert("Download gagal");
-  }
-}
-
 onMounted(() => fetchFolderContent());
 </script>
 
 <style scoped>
-.file-manager-container-dark {
-  background-color: #0b0f19;
+.file-manager-container-light {
+  background-color: #f8fafc;
   min-height: 100vh;
 }
-.file-card-dark {
+.file-card-light {
   height: 72vh;
   display: flex;
   flex-direction: column;
-  background-color: #111827 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
 }
-.border-dark {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-.bg-dark-card {
-  background-color: #111827 !important;
+.border-light {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 .file-list {
   flex: 1;
@@ -811,32 +894,33 @@ onMounted(() => fetchFolderContent());
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 10px;
 }
-.bulk-bar-dark {
+.bulk-bar-light {
   display: flex;
   align-items: center;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.2);
 }
-.file-row-dark {
+.file-row-light {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
-.file-row-dark:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
+.file-row-light:hover {
+  background: #f1f5f9;
+  border-color: rgba(37, 99, 235, 0.2);
   transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
-.file-row-dark.selected {
-  background: rgba(37, 99, 235, 0.15) !important;
-  border-color: rgba(59, 130, 246, 0.4) !important;
+.file-row-light.selected {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.4) !important;
 }
 .file-main {
   display: flex;
@@ -851,15 +935,15 @@ onMounted(() => fetchFolderContent());
 }
 .file-name-full {
   font-size: 14px;
-  color: #f3f4f6;
+  color: #1e293b;
 }
 .file-meta {
   font-size: 11px;
-  color: #9ca3af;
+  color: #64748b;
   margin-top: 3px;
 }
 
-/* Icon Full Color dengan nuansa gelap */
+/* Icon Full Color dengan nuansa cerah */
 .file-icon {
   width: 48px;
   height: 48px;
@@ -868,10 +952,10 @@ onMounted(() => fetchFolderContent());
   justify-content: center;
   border-radius: 14px;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 }
-.folder-icon { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706; }
-.file-icon-bg { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); color: #94a3b8; }
+.folder-icon-light { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706; }
+.file-icon-bg-light { background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); color: #64748b; }
 .icon-pdf { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #ef4444; }
 .icon-word { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #2563eb; }
 .icon-excel { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #16a34a; }
@@ -879,14 +963,11 @@ onMounted(() => fetchFolderContent());
 .icon-archive { background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); color: #ca8a04; }
 .icon-db { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); color: #0284c7; }
 .icon-code { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #ea580c; }
-.icon-app { background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%); color: #e11d48; }
-.icon-script { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); color: #f8fafc; }
 .icon-video { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); color: #0891b2; }
 .icon-audio { background: linear-gradient(135deg, #fae8ff 0%, #f5d0fe 100%); color: #c084fc; }
 .icon-ppt { background: linear-gradient(135deg, #ffedd5 0%, #ffdab9 100%); color: #c2410c; }
-.icon-text { background: #1e293b; color: #94a3b8; }
+.icon-text { background: #f1f5f9; color: #64748b; }
 .icon-android { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); color: #16a34a; }
-.icon-enc { background: #1e293b; color: #94a3b8; }
 
 .file-actions {
   display: flex;
@@ -894,7 +975,7 @@ onMounted(() => fetchFolderContent());
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-.file-row-dark:hover .file-actions {
+.file-row-light:hover .file-actions {
   opacity: 1;
 }
 
@@ -905,7 +986,7 @@ onMounted(() => fetchFolderContent());
   white-space: nowrap;
   padding-bottom: 2px;
 }
-.crumb-pill-dark {
+.crumb-pill-light {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -913,23 +994,23 @@ onMounted(() => fetchFolderContent());
   border-radius: 20px;
   font-size: 13px;
   cursor: pointer;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   transition: all 0.15s ease;
 }
-.crumb-pill-dark:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+.crumb-pill-light:hover {
+  background: #f1f5f9;
+  border-color: rgba(37, 99, 235, 0.3);
+  color: #1e293b;
 }
-.crumb-pill-dark.active {
-  background: rgba(37, 99, 235, 0.25);
-  color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.4);
+.crumb-pill-light.active {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.3);
   font-weight: 600;
 }
-.crumb-pill-dark.root {
+.crumb-pill-light.root {
   font-weight: 500;
 }
 
@@ -942,11 +1023,10 @@ onMounted(() => fetchFolderContent());
 }
 .preview-zoomed-image:active { cursor: grabbing; }
 
-.border-dashed { border-style: dashed !important; border-color: rgba(255, 255, 255, 0.2) !important; }
 .action-btn { transition: transform 0.1s ease; }
 .action-btn:active { transform: scale(0.97); }
 
-.border-bottom-dark {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.border-bottom-light {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 </style>

@@ -81,33 +81,69 @@ app.get("/api/public/share-info/:shareId", async (req, res) => {
     🔥 PUBLIC DOWNLOAD FILE (VIA SHARE_ID)
     Digunakan untuk file tunggal yang di-share
    ========================================================== */
-app.get("/s/:shareId", async (req, res) => {
-  try {
-    const { shareId } = req.params;
-    const result = await pool.query(
-      `SELECT * FROM files WHERE share_id=$1 AND is_public=true`,
-      [shareId]
-    );
+// app.get("/s/:shareId", async (req, res) => {
+//   try {
+//     const { shareId } = req.params;
+//     const result = await pool.query(
+//       `SELECT * FROM files WHERE share_id=$1 AND is_public=true`,
+//       [shareId]
+//     );
 
-    const file = result.rows[0];
-    if (!file) return res.status(404).send("File not found");
+//     const file = result.rows[0];
+//     if (!file) return res.status(404).send("File not found");
 
-    const filePath = path.resolve(file.path);
-    if (!fs.existsSync(filePath)) return res.status(404).send("Physical file missing");
+//     const filePath = path.resolve(file.path);
+//     if (!fs.existsSync(filePath)) return res.status(404).send("Physical file missing");
 
-    res.setHeader("Content-Type", file.mime_type);
-    res.setHeader("Content-Disposition", `attachment; filename="${file.original_name}"`);
-    fs.createReadStream(filePath).pipe(res);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
-  }
-});
+//     res.setHeader("Content-Type", file.mime_type);
+//     res.setHeader("Content-Disposition", `attachment; filename="${file.original_name}"`);
+//     fs.createReadStream(filePath).pipe(res);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Server error");
+//   }
+// });
 
+
+// /* ==========================================================
+//     🔥 PUBLIC DOWNLOAD FOLDER (ZIP)
+//     Mengompres folder yang di-share menjadi ZIP
+//    ========================================================== */
+// app.get("/sf/:shareId", async (req, res) => {
+//   try {
+//     const { shareId } = req.params;
+//     const folderResult = await pool.query(
+//       `SELECT * FROM folders WHERE share_id=$1 AND is_public=true`,
+//       [shareId]
+//     );
+
+//     const folder = folderResult.rows[0];
+//     if (!folder) return res.status(404).send("Folder not found");
+
+//     const files = await pool.query(`SELECT * FROM files WHERE folder_id=$1`, [folder.id]);
+
+//     res.setHeader("Content-Type", "application/zip");
+//     res.setHeader("Content-Disposition", `attachment; filename="${folder.name}.zip"`);
+
+//     const archive = archiver("zip", { zlib: { level: 9 } });
+//     archive.pipe(res);
+
+//     files.rows.forEach(file => {
+//       const filePath = path.resolve(file.path);
+//       if (fs.existsSync(filePath)) {
+//         archive.file(filePath, { name: file.original_name });
+//       }
+//     });
+
+//     await archive.finalize();
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Error generating ZIP");
+//   }
+// });
 
 /* ==========================================================
-    🔥 PUBLIC DOWNLOAD FOLDER (ZIP)
-    Mengompres folder yang di-share menjadi ZIP
+    🔥 PUBLIC DOWNLOAD FOLDER (ZIP) - REKURSIF
    ========================================================== */
 app.get("/sf/:shareId", async (req, res) => {
   try {
@@ -120,25 +156,141 @@ app.get("/sf/:shareId", async (req, res) => {
     const folder = folderResult.rows[0];
     if (!folder) return res.status(404).send("Folder not found");
 
-    const files = await pool.query(`SELECT * FROM files WHERE folder_id=$1`, [folder.id]);
-
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${folder.name}.zip"`);
 
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.pipe(res);
 
-    files.rows.forEach(file => {
-      const filePath = path.resolve(file.path);
-      if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: file.original_name });
+    // Fungsi rekursif untuk memasukkan file dan sub-folder ke ZIP
+    async function addFolderToZip(currentFolderId, zipPath) {
+      // 1. Ambil semua file di folder ini
+      const files = await pool.query(`SELECT * FROM files WHERE folder_id=$1`, [currentFolderId]);
+      for (const file of files.rows) {
+        const filePath = path.resolve(file.path);
+        if (fs.existsSync(filePath)) {
+          archive.file(filePath, { name: path.join(zipPath, file.original_name) });
+        }
       }
-    });
+
+      // 2. Ambil semua sub-folder di dalam folder ini
+      const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id=$1`, [currentFolderId]);
+      for (const sub of subfolders.rows) {
+        await addFolderToZip(sub.id, path.join(zipPath, sub.name));
+      }
+    }
+
+    // Mulai proses rekursif dari root folder yang di-share
+    await addFolderToZip(folder.id, "");
 
     await archive.finalize();
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error generating ZIP");
+    if (!res.headersSent) res.status(500).send("Error generating ZIP");
+  }
+});
+
+
+/* ==========================================================
+   🔥 DOWNLOAD FOLDER BY ID (UNTUK SUBFOLDER TANPA SHARE_ID) - REKURSIF
+   ========================================================== */
+// app.get("/api/public/download-folder/:folderId", async (req, res) => {
+//   try {
+//     const { folderId } = req.params;
+
+//     const folderResult = await pool.query(
+//       `SELECT * FROM folders WHERE id = $1`,
+//       [folderId]
+//     );
+
+//     const folder = folderResult.rows[0];
+//     if (!folder) return res.status(404).send("Folder not found");
+
+//     res.setHeader("Content-Type", "application/zip");
+//     res.setHeader(
+//       "Content-Disposition",
+//       `attachment; filename="${folder.name}.zip"`
+//     );
+
+//     const archive = archiver("zip", { zlib: { level: 9 } });
+//     archive.pipe(res);
+
+//     // Fungsi rekursif untuk subfolder
+//     async function addFolderToZip(currentFolderId, zipPath) {
+//       const files = await pool.query(`SELECT * FROM files WHERE folder_id = $1`, [currentFolderId]);
+//       for (const file of files.rows) {
+//         const filePath = path.resolve(file.path);
+//         if (fs.existsSync(filePath)) {
+//           archive.file(filePath, { name: path.join(zipPath, file.original_name) });
+//         }
+//       }
+
+//       const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id = $1`, [currentFolderId]);
+//       for (const sub of subfolders.rows) {
+//         await addFolderToZip(sub.id, path.join(zipPath, sub.name));
+//       }
+//     }
+
+//     await addFolderToZip(folderId, "");
+
+//     await archive.finalize();
+//   } catch (err) {
+//     console.error(err);
+//     if (!res.headersSent) res.status(500).send("Error download folder");
+//   }
+// });
+
+
+/* ==========================================================
+   🔥 DOWNLOAD SUBFOLDER BY ID (HANYA ISI FOLDER TERSEBUT)
+  ========================================================== */
+app.get("/api/public/download-folder/:folderId", async (req, res) => {
+  try {
+    const { folderId } = req.params;
+
+    // 1. Ambil folder spesifik yang sedang dibuka (misal: folder "tes")
+    const folderResult = await pool.query(
+      `SELECT * FROM folders WHERE id = $1`,
+      [folderId]
+    );
+
+    const folder = folderResult.rows[0];
+    if (!folder) return res.status(404).send("Folder not found");
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${folder.name}.zip"`
+    );
+
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    // 2. Fungsi Rekursif HANYA untuk subfolder di dalam folder ini ke bawah
+    async function addSubFolderToZip(currentFolderId, zipPath) {
+      // Ambil file yang benar-benar ada di dalam folder ini saja
+      const files = await pool.query(`SELECT * FROM files WHERE folder_id = $1`, [currentFolderId]);
+      for (const file of files.rows) {
+        const filePath = path.resolve(file.path);
+        if (fs.existsSync(filePath)) {
+          archive.file(filePath, { name: path.join(zipPath, file.original_name) });
+        }
+      }
+
+      // Ambil subfolder di dalamnya
+      const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id = $1`, [currentFolderId]);
+      for (const sub of subfolders.rows) {
+        await addSubFolderToZip(sub.id, path.join(zipPath, sub.name));
+      }
+    }
+
+    // Mulai arsip dari folder target (bukan root share)
+    await addSubFolderToZip(folderId, "");
+
+    await archive.finalize();
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) res.status(500).send("Error download folder");
   }
 });
 
