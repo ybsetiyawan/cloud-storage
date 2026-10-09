@@ -37,7 +37,7 @@
             <div class="d-flex align-center justify-space-between flex-wrap gap-4">
               <div class="d-flex align-center">
                 <div class="brand-icon-wrapper mr-4 d-flex align-center justify-center elevation-3">
-                  <v-icon color="white" size="30">mdi-cloud-outline</v-icon>
+                  <v-icon color="white" size="30">mdi-cloud-arrow-down-outline</v-icon>
                 </div>
                 <div>
                   <div class="d-flex align-center gap-2">
@@ -222,21 +222,29 @@
       </v-container>
     </v-main>
 
-    <!-- Dialog Preview Gambar -->
+    <!-- Dialog Preview Gambar dengan Zoom & Rotate -->
     <v-dialog v-model="showPreviewDialog" max-width="850" transition="dialog-bottom-transition">
       <v-card class="rounded-2xl overflow-hidden shadow-lg border-light bg-white">
         <v-card-title class="d-flex justify-space-between align-center px-6 py-4 bg-grey-lighten-4 text-grey-darken-4">
           <span class="text-subtitle-1 text-truncate font-weight-medium">{{ previewItem?.name }}</span>
           <div class="d-flex align-center gap-1">
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="rotateImage">
+              <v-icon>mdi-rotate-right</v-icon>
+              <v-tooltip activator="parent" location="bottom">Putar 90°</v-tooltip>
+            </v-btn>
+            <v-divider vertical class="mx-1 border-opacity-25" />
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomOut">
               <v-icon>mdi-magnify-minus-outline</v-icon>
+              <v-tooltip activator="parent" location="bottom">Zoom Out</v-tooltip>
             </v-btn>
             <span class="text-caption px-1 text-grey-darken-2 font-weight-mono" style="min-width: 48px; text-align: center;">{{ Math.round(zoomScale * 100) }}%</span>
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomIn">
               <v-icon>mdi-magnify-plus-outline</v-icon>
+              <v-tooltip activator="parent" location="bottom">Zoom In</v-tooltip>
             </v-btn>
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="resetZoom" class="ml-1">
               <v-icon>mdi-refresh</v-icon>
+              <v-tooltip activator="parent" location="bottom">Reset Tampilan</v-tooltip>
             </v-btn>
             <v-divider vertical class="mx-2 border-opacity-25" />
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="showPreviewDialog = false">
@@ -254,7 +262,10 @@
             <img
               v-if="previewUrl"
               :src="previewUrl"
-              :style="{ transform: `scale(${zoomScale})`, transition: isDragging ? 'none' : 'transform 0.15s ease-out' }"
+              :style="{ 
+                transform: `scale(${zoomScale}) rotate(${rotationAngle}deg)`, 
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out' 
+              }"
               class="preview-zoomed-image rounded-xl shadow-sm"
               alt="Preview"
             />
@@ -264,7 +275,7 @@
 
         <v-divider class="border-opacity-25"></v-divider>
         <v-card-actions class="px-6 py-3 bg-white">
-          <div class="text-caption text-grey">Gunakan kontrol zoom atau scroll mouse pada area gambar.</div>
+          <div class="text-caption text-grey">Gunakan tombol putar, kontrol zoom, atau scroll mouse pada area gambar.</div>
           <v-spacer />
           <v-btn color="blue-darken-2" variant="tonal" class="text-none px-5 rounded-pill font-weight-medium" @click="downloadItem(previewItem)">
             <v-icon start>mdi-download-outline</v-icon> Download
@@ -306,6 +317,7 @@ const showPreviewDialog = ref(false);
 const previewItem = ref<any>(null);
 const previewUrl = ref("");
 const zoomScale = ref(1);
+const rotationAngle = ref(0);
 const isDragging = ref(false);
 
 const { data, pending, error } = await useFetch<any>(() => 
@@ -401,6 +413,7 @@ async function loadThumbnails() {
 async function openPreview(item: any) {
   previewItem.value = item;
   zoomScale.value = 1;
+  rotationAngle.value = 0;
   const baseUrl = getBaseUrl();
   try {
     const endpoint = item.share_id ? `${baseUrl}/s/${item.share_id}` : `${baseUrl}/api/public/download-file/${item.id}`;
@@ -414,7 +427,11 @@ async function openPreview(item: any) {
 
 function zoomIn() { if (zoomScale.value < 4) zoomScale.value += 0.25; }
 function zoomOut() { if (zoomScale.value > 0.5) zoomScale.value -= 0.25; }
-function resetZoom() { zoomScale.value = 1; }
+function rotateImage() { rotationAngle.value = (rotationAngle.value + 90) % 360; }
+function resetZoom() { 
+  zoomScale.value = 1; 
+  rotationAngle.value = 0;
+}
 function handleWheelZoom(e: WheelEvent) {
   if (e.deltaY < 0) zoomIn(); else zoomOut();
 }

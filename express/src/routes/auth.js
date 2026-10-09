@@ -39,11 +39,16 @@ router.post("/register", async (req, res) => {
 });
 
 // LOGIN
+// LOGIN
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // REVISI: Tambahkan kolom quota dan used_quota di dalam SELECT
+    // Cek apakah username dan password diisi
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username dan password wajib diisi" });
+    }
+
     const result = await pool.query(
       "SELECT id, username, password, role, quota, used_quota FROM users WHERE username=$1",
       [username],
@@ -51,14 +56,16 @@ router.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
+    // 1. Tangani jika user tidak ditemukan di database
     if (!user) {
-      return res.status(400).json({ error: "invalid credentials" });
+      return res.status(404).json({ error: "Akun atau username tidak terdaftar" });
     }
 
+    // 2. Tangani jika password salah
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
-      return res.status(400).json({ error: "invalid credentials" });
+      return res.status(400).json({ error: "Password yang Anda masukkan salah" });
     }
 
     const token = jwt.sign(
@@ -70,33 +77,23 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" },
     );
 
-    // Sekarang user.quota dan user.used_quota sudah ada isinya karena sudah di-SELECT
     res.json({
       token,
       user: {
         id: user.id,
         username: user.username,
         role: user.role,
-        quota: user.quota,           // Data sudah aman
-        used_quota: user.used_quota  // Data sudah aman
+        quota: user.quota,
+        used_quota: user.used_quota
       },
     });
   } catch (err) {
-    console.error(err.message); // Tambahkan log agar gampang debug di terminal BE
-    res.status(500).json({ error: "server error" });
+    console.error(err.message);
+    res.status(500).json({ error: "Terjadi kesalahan pada server" });
   }
 });
 
-// // GET PROFILE
-// router.get("/me",  async (req, res) => {
-//   const result = await pool.query(
-//     `SELECT id, username, role, quota, used_quota 
-//      FROM users WHERE id=$1`,
-//     [req.user.id],
-//   );
 
-//   res.json(result.rows[0]);
-// });
 
 router.get("/me", auth, async (req, res) => {
 

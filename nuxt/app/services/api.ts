@@ -18,8 +18,15 @@ export async function adminLogin(username: string, password: string) {
   });
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Login gagal");
+    try {
+      const errData = await res.json();
+      // Menangkap error baik dari key 'error', 'message', maupun fallback ke teks default
+      const errorMessage = errData.error || errData.message || "Otorisasi gagal.";
+      throw new Error(errorMessage);
+    } catch (e: any) {
+      // Fallback jika respons body bukan format JSON yang valid
+      throw new Error(e.message || "Otorisasi gagal.");
+    }
   }
 
   return res.json();

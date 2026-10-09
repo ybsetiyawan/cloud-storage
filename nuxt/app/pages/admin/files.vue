@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="pa-6 file-manager-container-light">
+  <v-container fluid class="pa-4 file-manager-container-light">
     <!-- Header Modern Section -->
     <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-4">
       <div>
@@ -30,13 +30,13 @@
 
       <!-- Action Buttons -->
       <div class="d-flex align-center gap-2 flex-wrap">
-        <v-btn size="small" variant="outlined" class="text-none px-4 rounded-pill border-light bg-white text-grey-darken-3 action-btn" @click="createFolder">
+        <v-btn size="small" variant="outlined" class="mr-1 text-none px-4 rounded-pill border-light bg-white text-grey-darken-3 action-btn" @click="createFolder">
           <v-icon start color="amber-darken-2">mdi-folder-plus</v-icon> Add Folder
         </v-btn>
-        <v-btn size="small" variant="outlined" class="text-none px-4 rounded-pill border-light bg-white text-grey-darken-3 action-btn" @click="uploadFiles('folder')">
+        <v-btn size="small" variant="outlined" class="mr-1 text-none px-4 rounded-pill border-light bg-white text-grey-darken-3 action-btn" @click="uploadFiles('folder')">
           <v-icon start color="orange-darken-2">mdi-folder-upload</v-icon> Upload Folder
         </v-btn>
-        <v-btn size="small" color="blue-darken-2" class="text-none px-5 rounded-pill elevation-0 font-weight-medium text-white action-btn" @click="uploadFiles('file')">
+        <v-btn size="small" color="blue-darken-2" class="mr-1 text-none px-5 rounded-pill elevation-0 font-weight-medium text-white action-btn" @click="uploadFiles('file')">
           <v-icon start>mdi-cloud-upload</v-icon> Upload File
         </v-btn>
       </div>
@@ -163,7 +163,7 @@
                     {{ formatSize(item.size) }}
                   </v-chip>
                   <span v-else class="mr-2 text-amber-darken-3 font-weight-bold text-caption">Folder</span>
-                  <span class="text-grey-darken-1">• {{ formatDate(item.created_at) }}</span>
+                  <span class="text-grey-darken-1">{{ formatDate(item.created_at) }}</span>
                 </div>
               </div>
             </div>
@@ -197,12 +197,17 @@
       </div>
     </v-card>
 
-    <!-- Dialog Preview Gambar dengan Zoom In/Out -->
+    <!-- Dialog Preview Gambar dengan Zoom & Rotate -->
     <v-dialog v-model="showPreviewDialog" max-width="850" transition="dialog-bottom-transition">
       <v-card class="rounded-2xl overflow-hidden shadow-lg border-light bg-white">
         <v-card-title class="d-flex justify-space-between align-center px-6 py-4 bg-grey-lighten-4 text-grey-darken-4">
           <span class="text-subtitle-1 text-truncate font-weight-medium">{{ previewItem?.name || previewItem?.original_name }}</span>
           <div class="d-flex align-center gap-1">
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="rotateImage">
+              <v-icon>mdi-rotate-right</v-icon>
+              <v-tooltip activator="parent" location="bottom">Putar 90°</v-tooltip>
+            </v-btn>
+            <v-divider vertical class="mx-1 border-opacity-25" />
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomOut">
               <v-icon>mdi-magnify-minus-outline</v-icon>
               <v-tooltip activator="parent" location="bottom">Zoom Out</v-tooltip>
@@ -214,7 +219,7 @@
             </v-btn>
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="resetZoom" class="ml-1">
               <v-icon>mdi-refresh</v-icon>
-              <v-tooltip activator="parent" location="bottom">Reset Zoom</v-tooltip>
+              <v-tooltip activator="parent" location="bottom">Reset Tampilan</v-tooltip>
             </v-btn>
             <v-divider vertical class="mx-2 border-opacity-25" />
             <v-btn icon variant="text" size="small" color="grey-darken-3" @click="showPreviewDialog = false">
@@ -232,7 +237,10 @@
             <img
               v-if="previewUrl"
               :src="previewUrl"
-              :style="{ transform: `scale(${zoomScale})`, transition: isDragging ? 'none' : 'transform 0.15s ease-out' }"
+              :style="{ 
+                transform: `scale(${zoomScale}) rotate(${rotationAngle}deg)`, 
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out' 
+              }"
               class="preview-zoomed-image rounded-xl shadow-sm"
               alt="Preview"
             />
@@ -242,7 +250,7 @@
 
         <v-divider class="border-opacity-25"></v-divider>
         <v-card-actions class="px-6 py-3 bg-white">
-          <div class="text-caption text-grey">Gunakan tombol kontrol zoom atau scroll mouse pada area gambar untuk memperbesar/memperkecil.</div>
+          <div class="text-caption text-grey">Gunakan tombol putar, zoom, atau scroll mouse pada area gambar untuk memperbesar/memperkecil.</div>
           <v-spacer />
           <v-btn color="blue-darken-2" variant="tonal" class="text-none px-5 rounded-pill font-weight-medium" @click="handleDownload(previewItem)">
             <v-icon start>mdi-download-outline</v-icon> Download
@@ -403,6 +411,7 @@ const showPreviewDialog = ref(false);
 const previewItem = ref<any>(null);
 const previewUrl = ref("");
 const zoomScale = ref(1);
+const rotationAngle = ref(0);
 const isDragging = ref(false);
 
 const overallProgress = computed(() => {
@@ -502,6 +511,7 @@ async function loadThumbnails() {
 async function openPreview(item: any) {
   previewItem.value = item;
   zoomScale.value = 1;
+  rotationAngle.value = 0;
   try {
     const endpoint = `/files/${item.id}`;
     const response = await $api<Blob>(endpoint, {
@@ -527,8 +537,13 @@ function zoomOut() {
   }
 }
 
+function rotateImage() {
+  rotationAngle.value = (rotationAngle.value + 90) % 360;
+}
+
 function resetZoom() {
   zoomScale.value = 1;
+  rotationAngle.value = 0;
 }
 
 function handleWheelZoom(e: WheelEvent) {
@@ -635,7 +650,6 @@ async function shareItems(items: any[]) {
   }
 }
 
-// Fungsi konfirmasi delete
 function confirmDelete(items: any[]) {
   if (!items.length) return;
   itemsToDelete.value = items;
@@ -661,7 +675,6 @@ async function executeDelete() {
   }
 }
 
-// Fungsi download tunggal
 async function handleDownload(item: any) {
   if (!item) return;
   const endpoint = item.type === "folder" ? `/folders/${item.id}/download` : `/files/${item.id}`;
@@ -680,7 +693,6 @@ async function handleDownload(item: any) {
   }
 }
 
-// Fungsi download massal item yang tercentang
 async function downloadSelectedItems(items: any[]) {
   if (!items.length) return;
   for (const item of items) {
@@ -690,7 +702,6 @@ async function downloadSelectedItems(items: any[]) {
   snackbar.value = true;
 }
 
-// Fungsi prompt rename
 function openRenameDialog(item: any) {
   itemToRename.value = item;
   renameValue.value = item.name || item.original_name;
@@ -742,63 +753,6 @@ function formatDate(d: any) {
   return d ? new Date(d).toLocaleDateString() : "-";
 }
 
-// function uploadFiles(mode = 'file') {
-//   const input = document.createElement("input");
-//   input.type = "file";
-//   if (mode === 'folder') {
-//     // @ts-ignore
-//     input.webkitdirectory = true;
-//   } else {
-//     input.multiple = true;
-//   }
-
-//   input.onchange = async () => {
-//     if (!input.files || input.files.length === 0) return;
-//     const filesArr = Array.from(input.files);
-//     uploadProgress.value = filesArr.map((f) => ({ name: f.webkitRelativePath || f.name, progress: 0 }));
-//     showUploadDialog.value = true;
-//     const token = localStorage.getItem("admin_token");
-
-//     for (let i = 0; i < filesArr.length; i++) {
-//       const file = filesArr[i];
-//       if (!file) continue;
-//       const formData = new FormData();
-//       if (currentFolderId.value) {
-//         formData.append("folder_id", String(currentFolderId.value));
-//       }
-//       const relativePath = file.webkitRelativePath || file.name;
-//       formData.append("fullPath", relativePath); 
-//       formData.append("files", file);
-//       const currentItem = uploadProgress.value[i];
-
-//       try {
-//         await new Promise<void>((resolve, reject) => {
-//           const xhr = new XMLHttpRequest();
-//           xhr.open("POST", "http://localhost:8090/api/files/upload");
-//           xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-//           xhr.upload.onprogress = (e) => {
-//             if (e.lengthComputable && currentItem) {
-//               currentItem.progress = Math.round((e.loaded / e.total) * 100);
-//             }
-//           };
-//           xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject());
-//           xhr.onerror = () => reject("Network error");
-//           xhr.send(formData);
-//         });
-//       } catch (err) {
-//         console.error(`Gagal upload: ${relativePath}`, err);
-//       }
-//     }
-
-//     setTimeout(() => {
-//       showUploadDialog.value = false;
-//       fetchFolderContent(currentFolderId.value);
-//     }, 800);
-//   };
-
-//   input.click();
-// }
-
 function uploadFiles(mode = 'file') {
   const input = document.createElement("input");
   input.type = "file";
@@ -816,13 +770,10 @@ function uploadFiles(mode = 'file') {
     showUploadDialog.value = true;
     const token = localStorage.getItem("admin_token");
 
-    // --- SOLUSI OTOMATIS HOST ---
-    // Mendeteksi domain/IP secara dinamis dari browser klien
-    const protocol = window.location.protocol; // http: atau https:
-    const hostname = window.location.hostname; // localhost atau 10.126.101.46
-    const backendPort = "8090"; // Sesuaikan port backend Anda
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const backendPort = "8090";
     const uploadUrl = `${protocol}//${hostname}:${backendPort}/api/files/upload`;
-    // ----------------------------
 
     for (let i = 0; i < filesArr.length; i++) {
       const file = filesArr[i];
@@ -839,7 +790,7 @@ function uploadFiles(mode = 'file') {
       try {
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open("POST", uploadUrl); // Menggunakan URL dinamis
+          xhr.open("POST", uploadUrl);
           xhr.setRequestHeader("Authorization", `Bearer ${token}`);
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable && currentItem) {
@@ -870,23 +821,34 @@ onMounted(() => fetchFolderContent());
 <style scoped>
 .file-manager-container-light {
   background-color: #f8fafc;
-  min-height: 100vh;
+  height: calc(95vh - 64px); /* Mengurangi tinggi navbar atas jika ada */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
 }
+
 .file-card-light {
-  height: 72vh;
+  height: 100%;             /* Mengikuti sisa ruang flex kontainer dengan pas */
+  max-height: 100%;         /* Mencegah card keluar atau terpotong di bawah */
   display: flex;
   flex-direction: column;
   background-color: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+  min-height: 0;            
 }
+
 .border-light {
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
+
 .file-list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto;         /* Scroll internal aktif di dalam card */
 }
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -897,12 +859,14 @@ onMounted(() => fetchFolderContent());
   background: rgba(0, 0, 0, 0.12);
   border-radius: 10px;
 }
+
 .bulk-bar-light {
   display: flex;
   align-items: center;
   background: rgba(37, 99, 235, 0.06);
   border: 1px solid rgba(37, 99, 235, 0.2);
 }
+
 .file-row-light {
   display: flex;
   align-items: center;
@@ -922,6 +886,7 @@ onMounted(() => fetchFolderContent());
   background: rgba(37, 99, 235, 0.08) !important;
   border-color: rgba(37, 99, 235, 0.4) !important;
 }
+
 .file-main {
   display: flex;
   align-items: center;
@@ -929,14 +894,17 @@ onMounted(() => fetchFolderContent());
   min-width: 0;
   flex: 1;
 }
+
 .file-text {
   flex: 1;
   min-width: 0;
 }
+
 .file-name-full {
   font-size: 14px;
   color: #1e293b;
 }
+
 .file-meta {
   font-size: 11px;
   color: #64748b;

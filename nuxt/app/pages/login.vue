@@ -1,131 +1,139 @@
 <template>
   <v-app>
-    <v-container fluid class="pa-0 fill-height bg-slate-50">
-      <v-row no-gutters class="fill-height">
-        
-        <v-col cols="12" md="6" lg="7" class="d-none d-md-flex position-relative overflow-hidden bg-slate-900">
-          <div class="hero-image"></div>
-          <div class="hero-overlay"></div>
+    <div class="login-wrapper fill-height d-flex align-center justify-center">
+      <!-- Background Dekoratif dengan Gradasi Biru Korporat Elegan -->
+      <div class="bg-gradient-anim"></div>
+      <div class="bg-shape-1 animate-pulse-slow"></div>
+      <div class="bg-shape-2 animate-pulse-delayed"></div>
 
-          <div class="z-index-2 pa-16 d-flex flex-column h-100 w-100">
-            <div class="d-flex align-center animate-fade-in">
-              <v-avatar color="blue-darken-4" size="48" class="mr-4 elevation-10 border-light">
-                <v-icon color="blue-lighten-3" size="28">mdi-server-security</v-icon>
-              </v-avatar>
-              <div>
-                <h2 class="text-h4 font-weight-black text-white tracking-tighter line-height-1">
-                  EDPSBY<span class="text-blue-lighten-3">DRIVE</span>
-                </h2>
-                <div class="text-caption text-blue-lighten-4 font-weight-bold tracking-widest text-uppercase">
-                  Internal Storage System
-                </div>
-              </div>
-            </div>
-
-            <v-spacer></v-spacer>
-
-            <div class="max-w-500 animate-slide-up">
-              <h1 class="text-h2 font-weight-black text-white mb-6 leading-tight tracking-tighter">
-                Local Storage <br/>
-                <span class="text-blue-lighten-3">Management.</span>
-              </h1>
-              <div class="divider-glow mb-6"></div>
-              <p class="text-h6 text-blue-lighten-5 opacity-80 font-weight-light mb-10">
-                <strong>PT Indomarco Adi Prima</strong> — Surabaya.
-              </p>
-              
-              <div class="d-flex align-center">
-                <v-icon color="blue-lighten-3" class="mr-2">mdi-check-decagram</v-icon>
-                <span class="text-subtitle-2 text-white opacity-70">Verified Enterprise Access Control</span>
-              </div>
-            </div>
-
-            <v-spacer></v-spacer>
-
-            <div class="d-flex align-center text-caption text-blue-lighten-5 opacity-50">
-              <v-icon size="14" class="mr-2">mdi-code-braces</v-icon>
-              <span>© 2026 EDP Surabaya &bull; Architecture by <strong>@Ybs</strong></span>
-            </div>
-          </div>
-        </v-col>
-
-        <v-col cols="12" md="6" lg="5" class="d-flex align-center justify-center pa-8 pa-md-16 bg-white">
-          <div class="w-100" style="max-width: 420px;">
+      <!-- Wrapper dengan Animasi Slide ke Kiri saat Login -->
+      <v-container 
+        style="max-width: 1050px; position: relative; z-index: 2;" 
+        class="px-4 transition-container"
+        :class="{ 'slide-out-left': isLoggingIn }"
+      >
+        <v-card class="login-card elevation-24 rounded-3xl overflow-hidden border-light bg-white animate-card-entrance">
+          <v-row no-gutters>
             
-            <div class="mb-12">
-              <v-avatar color="slate-900" size="48" class="d-md-none mb-6">
-                <v-icon color="white">mdi-server-security</v-icon>
-              </v-avatar>
-              
-              <h2 class="text-h3 font-weight-black text-slate-900 mb-2 tracking-tighter">Sign In</h2>
-              <p class="text-body-1 text-slate-500 font-weight-medium">Silakan masuk ke portal manajemen file.</p>
-            </div>
+            <!-- SISI KIRI: Branding & Informasi Korporat -->
+            <v-col cols="12" md="6" class="left-hero-panel pa-10 pa-md-14 d-flex flex-column justify-space-between text-white position-relative overflow-hidden">
+              <div class="hero-bg-overlay"></div>
 
-            <v-expand-transition>
-              <v-alert v-if="infoMessage" type="info" variant="tonal" class="mb-8 rounded-xl text-caption font-weight-bold" border="start">
-                {{ infoMessage }}
-              </v-alert>
-            </v-expand-transition>
-
-            <v-form @submit.prevent="handleLogin" class="mt-4">
-              <div class="input-wrapper mb-6">
-                <label class="input-label">USERNAME</label>
-                <v-text-field
-                  v-model="email"
-                  variant="underlined"
-                  color="primary"
-                  class="custom-underlined"
-                  prepend-inner-icon="mdi-account-outline"
-                  placeholder="Masukkan username"
-                  hide-details
-                  autofocus
-                ></v-text-field>
-              </div>
-
-              <div class="input-wrapper mb-10">
-                <div class="d-flex justify-space-between">
-                  <label class="input-label">PASSWORD</label>
-                  <!-- <a href="#" class="text-caption font-weight-bold text-primary text-decoration-none">Lupa password?</a> -->
+              <div class="z-index-2 animate-element-1">
+                <div class="company-tag mb-3 d-inline-flex align-center px-3 py-1 rounded-lg">
+                  <v-icon size="14" color="blue-lighten-3" class="mr-2">mdi-office-building-marker-outline</v-icon>
+                  <span class="text-caption font-weight-bold text-white tracking-wide">PT Indomarco Adi Prima &bull; Surabaya</span>
                 </div>
-                <v-text-field
-                  v-model="password"
-                  :type="showPassword ? 'text' : 'password'"
-                  variant="underlined"
-                  color="primary"
-                  class="custom-underlined"
-                  prepend-inner-icon="mdi-lock-outline"
-                  placeholder="••••••••"
-                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                  @click:append-inner="showPassword = !showPassword"
-                  hide-details
-                ></v-text-field>
+                <div class="d-flex align-center">
+                  <!-- Logo Otentik Korporat (Server / Network Storage) -->
+                  <div class="brand-icon-box mr-3 d-flex align-center justify-center elevation-6 pulse-icon">
+                    <v-icon color="white" size="24">mdi-server-network</v-icon>
+                  </div>
+                  <span class="text-caption font-weight-bold tracking-widest text-blue-lighten-3 uppercase">EDPSBY DRIVE</span>
+                </div>
               </div>
 
-              <v-expand-transition>
-                <v-alert v-if="error" type="error" variant="tonal" class="mb-8 rounded-lg text-caption font-weight-bold">
-                  {{ error }}
-                </v-alert>
-              </v-expand-transition>
+              <div class="z-index-2 my-8 animate-element-2">
+                <h1 class="text-h3 font-weight-black tracking-tight mb-4 leading-tight">
+                  Local Storage <br />
+                  <span class="text-gradient-shimmer">Management.</span>
+                </h1>
+                <p class="text-body-1 text-grey-lighten-2 font-weight-light mb-6">
+                  Portal Penyimpanan internal terpusat untuk pengelolaan, unggah, dan berbagi berkas operasional dengan aman.
+                </p>
+                <div class="d-flex align-center gap-2 text-caption text-blue-lighten-3 font-weight-medium">
+                  <v-icon size="18" class="mr-1 icon-bounce">mdi-shield-check-outline</v-icon>
+                  <span>Sistem Enkripsi & Akses Terbatas</span>
+                </div>
+              </div>
 
-              <v-btn
-                block
-                size="x-large"
-                color="slate-900"
-                elevation="12"
-                class="rounded-xl font-weight-black text-none py-8 btn-login-custom"
-                :loading="loading"
-                @click="handleLogin"
-              >
-                Log In to Dashboard
-                <v-icon end class="ml-2">mdi-arrow-right</v-icon>
-              </v-btn>
-            </v-form>
+              <div class="z-index-2 text-caption text-grey-lighten-1 animate-element-3" style="font-size: 11px !important;">
+                © 2026 EDP Surabaya &bull;
+              </div>
+            </v-col>
 
-          </div>
-        </v-col>
+            <!-- SISI KANAN: Form Login Interaktif Ber-animasi -->
+            <v-col cols="12" md="6" class="pa-8 pa-md-14 d-flex align-center bg-white animate-element-right">
+              <div class="w-100">
+                
+                <div class="mb-8 form-title-anim">
+                  <h2 class="text-h4 font-weight-bold text-grey-darken-4 mb-2">Selamat Datang</h2>
+                  <p class="text-body-2 text-grey-darken-1">Masukkan kredensial akun Anda untuk melanjutkan.</p>
+                </div>
 
-      </v-row>
-    </v-container>
+                <v-expand-transition>
+                  <v-alert v-if="infoMessage" type="info" variant="tonal" class="mb-6 rounded-xl text-caption font-weight-medium animate-pop-in" border="start">
+                    {{ infoMessage }}
+                  </v-alert>
+                </v-expand-transition>
+
+                <v-form @submit.prevent="handleLogin">
+                  <div class="mb-5 input-group-anim-1">
+                    <label class="input-label mb-2 d-block">USERNAME</label>
+                    <v-text-field
+                      v-model="email"
+                      variant="outlined"
+                      density="comfortable"
+                      color="blue-darken-2"
+                      bg-color="#f8fafc"
+                      class="custom-field"
+                      placeholder="Masukkan username Anda"
+                      prepend-inner-icon="mdi-account-outline"
+                      hide-details
+                      rounded="xl"
+                      autofocus
+                    ></v-text-field>
+                  </div>
+
+                  <div class="mb-8 input-group-anim-2">
+                    <label class="input-label mb-2 d-block">PASSWORD</label>
+                    <v-text-field
+                      v-model="password"
+                      :type="showPassword ? 'text' : 'password'"
+                      variant="outlined"
+                      density="comfortable"
+                      color="blue-darken-2"
+                      bg-color="#f8fafc"
+                      class="custom-field"
+                      placeholder="••••••••"
+                      prepend-inner-icon="mdi-lock-outline"
+                      :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                      @click:append-inner="showPassword = !showPassword"
+                      hide-details
+                      rounded="xl"
+                    ></v-text-field>
+                  </div>
+
+                  <v-expand-transition>
+                    <v-alert v-if="error" type="error" variant="tonal" class="mb-6 rounded-xl text-caption font-weight-medium animate-shake">
+                      {{ error }}
+                    </v-alert>
+                  </v-expand-transition>
+
+                  <div class="btn-group-anim">
+                    <v-btn
+                      block
+                      size="large"
+                      color="blue-darken-2"
+                      elevation="6"
+                      class="rounded-xl text-none font-weight-semibold py-6 btn-login-animated text-white position-relative overflow-hidden"
+                      :loading="loading"
+                      @click="handleLogin"
+                    >
+                      <span class="btn-text">Masuk ke Sistem</span>
+                      <v-icon end class="ml-2 btn-arrow-anim">mdi-arrow-right</v-icon>
+                      <div class="shimmer-beam"></div>
+                    </v-btn>
+                  </div>
+                </v-form>
+
+              </div>
+            </v-col>
+
+          </v-row>
+        </v-card>
+      </v-container>
+    </div>
   </v-app>
 </template>
 
@@ -145,6 +153,7 @@ const loading = ref(false);
 const error = ref("");
 const showPassword = ref(false);
 const infoMessage = ref("");
+const isLoggingIn = ref(false);
 
 onMounted(() => {
     if (route.query.msg === 'session_expired') {
@@ -158,7 +167,7 @@ onMounted(() => {
 
 async function handleLogin() {
     if (!email.value || !password.value) {
-        error.value = "Email dan password wajib diisi";
+        error.value = "Username dan password wajib diisi";
         return;
     }
     try {
@@ -167,99 +176,213 @@ async function handleLogin() {
         const data = await adminLogin(email.value, password.value);
         localStorage.setItem("admin_token", data.token);
         localStorage.setItem("user_data", JSON.stringify(data.user));
-        router.push("/admin/files");
+        
+        isLoggingIn.value = true;
+        setTimeout(() => {
+            router.push("/admin/files");
+        }, 500);
     } catch (err: any) {
-        error.value = err.message || "Otorisasi gagal.";
-    } finally {
+        error.value = err.message;
         loading.value = false;
     }
 }
 </script>
 
 <style scoped>
-/* Main Colors */
-.bg-slate-50 { background-color: #f8fafc !important; }
-.bg-slate-900 { background-color: #0f172a !important; }
-.text-slate-900 { color: #0f172a; }
-.text-slate-500 { color: #64748b; }
-.text-slate-400 { color: #94a3b8; }
+.login-wrapper {
+  background: #f1f5f9;
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+}
 
-/* SISI KIRI: Background & Visuals */
-.hero-image {
+.transition-container {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out;
+}
+.slide-out-left {
+  transform: translateX(-100vw);
+  opacity: 0;
+}
+
+.bg-gradient-anim {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(125deg, #eff6ff, #e2e8f0, #f8fafc, #dbeafe);
+  background-size: 400% 400%;
+  animation: gradientFlow 15s ease infinite;
+  z-index: 0;
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-shape-1 {
+  position: absolute;
+  top: -10%; left: -10%;
+  width: 500px; height: 500px;
+  background: rgba(37, 99, 235, 0.15);
+  border-radius: 50%;
+  filter: blur(90px);
+}
+.bg-shape-2 {
+  position: absolute;
+  bottom: -10%; right: -10%;
+  width: 500px; height: 500px;
+  background: rgba(14, 165, 233, 0.15);
+  border-radius: 50%;
+  filter: blur(90px);
+}
+
+.login-card {
+  box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* SISI KIRI: Panel Hero dengan Nuansa Blue/Navy Korporat Konsisten */
+.left-hero-panel {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%);
+  position: relative;
+}
+.hero-bg-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc51?q=80&w=2000');
-  background-size: cover;
-  background-position: center;
-  filter: grayscale(100%) brightness(0.2);
-  transition: transform 20s linear;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.5;
 }
 
-.hero-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.7) 100%);
+.company-tag {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(6px);
+  width: fit-content;
 }
 
-.divider-glow {
-  width: 60px;
-  height: 4px;
-  background: #64b5f6;
-  border-radius: 2px;
-  box-shadow: 0 0 15px rgba(100, 181, 246, 0.5);
+.brand-icon-box {
+  width: 48px; height: 48px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-.border-light { border: 1px solid rgba(255,255,255,0.1) !important; }
-.z-index-2 { z-index: 2; position: relative; }
-.max-w-500 { max-width: 500px; }
-.line-height-1 { line-height: 1 !important; }
-.tracking-widest { letter-spacing: 0.2em !important; }
+.text-gradient-shimmer {
+  background: linear-gradient(90deg, #93c5fd, #ffffff, #60a5fa);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerText 5s linear infinite;
+}
 
-/* SISI KANAN: Form Styling */
+@keyframes shimmerText {
+  to { background-position: 200% center; }
+}
+
 .input-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
   letter-spacing: 0.05em;
 }
 
-.custom-underlined :deep(.v-field__input) {
-  font-weight: 500;
-  padding-left: 0 !important;
+.custom-field :deep(.v-field__outline) {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease;
+}
+.custom-field:hover :deep(.v-field__outline),
+.custom-field:focus-within :deep(.v-field__outline) {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-.custom-underlined :deep(.v-field__label) {
-  font-weight: 600;
+.btn-login-animated {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.btn-login-animated:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4) !important;
+}
+.btn-login-animated:hover .btn-arrow-anim {
+  transform: translateX(6px);
+  transition: transform 0.25s ease-in-out;
 }
 
-.btn-login-custom {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-  color: white !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.shimmer-beam {
+  position: absolute;
+  top: 0; left: -150%;
+  width: 150%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmerButton 3s infinite linear;
+}
+@keyframes shimmerButton {
+  0% { left: -150%; }
+  100% { left: 150%; }
 }
 
-.btn-login-custom:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 30px rgba(15, 23, 42, 0.25) !important;
+.z-index-2 {
+  position: relative;
+  z-index: 2;
 }
 
-/* Utils */
-.tracking-tighter { letter-spacing: -0.05em !important; }
-
-/* Animations */
-.animate-fade-in {
-  animation: fadeIn 1s ease-out;
-}
-.animate-slide-up {
-  animation: slideUp 0.8s ease-out;
+@keyframes cardEntrance {
+  0% { opacity: 0; transform: scale(0.92) translateY(30px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes slideFromLeft {
+  0% { opacity: 0; transform: translateX(-30px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+
+@keyframes slideFromRight {
+  0% { opacity: 0; transform: translateX(30px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
+
+@keyframes slideFromBottom {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseSlow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+@keyframes bounceIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-card-entrance { animation: cardEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-element-1 { animation: slideFromLeft 0.7s ease-out 0.2s both; }
+.animate-element-2 { animation: slideFromLeft 0.8s ease-out 0.35s both; }
+.animate-element-3 { animation: slideFromLeft 0.9s ease-out 0.5s both; }
+
+.animate-element-right { animation: slideFromRight 0.8s ease-out 0.2s both; }
+.form-title-anim { animation: slideFromBottom 0.6s ease-out 0.3s both; }
+.input-group-anim-1 { animation: slideFromBottom 0.6s ease-out 0.45s both; }
+.input-group-anim-2 { animation: slideFromBottom 0.6s ease-out 0.6s both; }
+.btn-group-anim { animation: slideFromBottom 0.6s ease-out 0.75s both; }
+
+.animate-pulse-slow { animation: pulseSlow 7s infinite ease-in-out; }
+.animate-pulse-delayed { animation: pulseSlow 9s infinite ease-in-out 2s; }
+.icon-bounce { animation: bounceIcon 2.5s infinite ease-in-out; }
+.animate-pop-in { animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-shake { animation: shake 0.4s ease-in-out; }
 </style>

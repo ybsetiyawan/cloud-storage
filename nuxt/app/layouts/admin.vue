@@ -1,5 +1,5 @@
 <template>
-  <v-app class="app-container-light">
+  <v-app class="app-container-light" :class="{ 'slide-out-right': isLoggingOut }">
     <!-- Sidebar / Navigation Drawer Modern Light -->
     <v-navigation-drawer
       v-model="drawer"
@@ -68,7 +68,7 @@
       </template>
     </v-navigation-drawer>
 
-    <!-- App Bar / Top Navbar Modern Light dengan Efek Garis Cahaya Animasi Berjalan -->
+    <!-- App Bar / Top Navbar Modern Light -->
     <v-app-bar flat border="bottom" color="white" height="75" class="px-6 navbar-light position-relative overflow-hidden">
       <div class="top-bar-glow-line-light"></div>
       <v-app-bar-nav-icon
@@ -92,7 +92,7 @@
 
       <v-spacer />
 
-      <!-- User Profile Menu Dropdown -->
+      <!-- User Profile Menu Dropdown (Langsung Logout Tanpa Sub-menu) -->
       <v-menu location="bottom end" transition="slide-y-transition">
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props" icon variant="flat" class="profile-btn-light border-light rounded-xl pa-1">
@@ -104,28 +104,15 @@
           </v-btn>
         </template>
 
-        <v-card width="220" class="mt-2 rounded-2xl elevation-8 pa-1 bg-white border-light">
+        <v-card width="180" class="mt-2 rounded-2xl elevation-8 pa-1 bg-white border-light">
           <v-list density="compact" nav class="pa-1 bg-transparent text-grey-darken-4">
-            <v-list-item
-              prepend-icon="mdi-account-circle-outline"
-              title="Profil User"
-              rounded="lg"
-              class="py-2 mb-1"
-            />
-            <v-list-item
-              prepend-icon="mdi-cog-outline"
-              title="Pengaturan"
-              rounded="lg"
-              class="py-2 mb-1"
-            />
-            <v-divider class="my-1 mx-2 border-opacity-25"></v-divider>
             <v-list-item
               prepend-icon="mdi-power"
               title="Logout Sistem"
               color="error"
               rounded="lg"
               class="py-2 text-error font-weight-bold"
-              @click="handleLogout"
+              @click="executeLogout"
             />
           </v-list>
         </v-card>
@@ -133,7 +120,7 @@
     </v-app-bar>
 
     <!-- Main Content Area -->
-    <v-main class="bg-light-main">
+    <v-main class="bg-light-main" style="height: 100vh; max-height: 100vh; overflow: hidden;">
       <v-container fluid class="pa-6">
         <slot />
       </v-container>
@@ -147,6 +134,7 @@ import { useRouter } from "vue-router";
 
 const drawer = ref(true);
 const router = useRouter();
+const isLoggingOut = ref(false);
 
 // Data user
 const userData = ref({
@@ -198,17 +186,26 @@ onMounted(() => {
   }
 });
 
-function handleLogout() {
-  if (confirm("Logout dari aplikasi?")) {
-    localStorage.clear();
+// Fungsi Logout Instan dengan Animasi Slide ke Kanan
+function executeLogout() {
+  localStorage.clear();
+  isLoggingOut.value = true;
+  setTimeout(() => {
     router.push("/login");
-  }
+  }, 500); // Durasi disesuaikan dengan animasi slide-out CSS
 }
 </script>
 
 <style scoped>
 .app-container-light {
   background-color: #f8fafc;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out;
+}
+
+/* Animasi Slide ke Kanan saat Logout */
+.slide-out-right {
+  transform: translateX(100vw);
+  opacity: 0;
 }
 
 .bg-light-main {
@@ -235,7 +232,7 @@ function handleLogout() {
   border-radius: 12px;
 }
 
-/* Animasi Denyut Jelas pada Logo Sidebar (Light Mode) */
+/* Animasi Denyut Jelas pada Logo Sidebar */
 .pulse-animation-light {
   animation: pulseGlowLight 2s infinite ease-in-out;
 }
@@ -263,7 +260,7 @@ function handleLogout() {
   background: rgba(37, 99, 235, 0.04) !important;
 }
 
-/* Animasi Kilau Cahaya (Shimmer) pada Widget Storage */
+/* Shimmer Widget Storage */
 .shimmer-box-light {
   background: #f8fafc;
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -291,7 +288,7 @@ function handleLogout() {
   }
 }
 
-/* Navbar Light dengan Garis Cahaya Berjalan */
+/* Navbar */
 .navbar-light {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
@@ -301,7 +298,7 @@ function handleLogout() {
   left: 0;
   height: 3px;
   width: 100%;
-  background: linear-gradient(90deg, transparent, #2563eb, #60a5fa, #93c5fd, transparent);
+  background: linear-gradient(90deg, transparent, #ff00ff, #2950ff, #00ff9d, transparent);
   animation: shimmerLine 3s infinite linear;
 }
 @keyframes shimmerLine {
@@ -313,7 +310,6 @@ function handleLogout() {
   }
 }
 
-/* Animasi Masuk Halaman */
 .fade-in {
   animation: fadeIn 0.5s ease-out;
 }
@@ -328,7 +324,6 @@ function handleLogout() {
   }
 }
 
-/* Active Menu Styling Light Mode */
 .v-list-item--active {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(29, 78, 216, 0.08) 100%) !important;
   color: #2563eb !important;
