@@ -1,7 +1,6 @@
 <template>
   <v-app class="shared-page-bg">
     <v-main class="d-flex align-center justify-center">
-      <!-- Diperbesar dari 960px ke 1140px agar lebih luas -->
       <v-container class="py-10 px-4 px-md-6" style="max-width: 1140px;">
         
         <!-- Loading State -->
@@ -30,7 +29,7 @@
           </v-btn>
         </v-card>
 
-        <!-- Main Content Card (Modern & Wider) -->
+        <!-- Main Content Card -->
         <v-card v-else class="mx-auto border-light elevation-8 rounded-xl bg-white overflow-hidden main-card-shadow">
           
           <!-- Header Section -->
@@ -38,7 +37,7 @@
             <div class="d-flex align-center justify-space-between flex-wrap gap-4">
               <div class="d-flex align-center">
                 <div class="brand-icon-wrapper mr-4 d-flex align-center justify-center elevation-3">
-                  <v-icon color="white" size="30">mdi-cloud-arrow-down-outline</v-icon>
+                  <v-icon color="white" size="30">mdi-cloud-outline</v-icon>
                 </div>
                 <div>
                   <div class="d-flex align-center gap-2">
@@ -67,24 +66,23 @@
                 </div>
               </div>
 
-              <!-- Download Semua Button -->
-            <!-- Download Button -->
-<v-btn
-  color="blue-darken-2"
-  elevation="3"
-  size="x-large"
-  rounded="pill"
-  prepend-icon="mdi-download-outline"
-  :loading="isDownloading"
-  :disabled="selectedItems.length > 0"
-  class="text-none font-weight-semibold px-8 btn-download-anim text-white"
-  @click="handleMainDownload"
->
-  Download Semua
-</v-btn>
+              <!-- Download Button (Disabled jika ada item yang dicentang) -->
+              <v-btn
+                color="blue-darken-2"
+                elevation="3"
+                size="x-large"
+                rounded="pill"
+                prepend-icon="mdi-download-outline"
+                :loading="isDownloading"
+                :disabled="selectedItems.length > 0"
+                class="text-none font-weight-semibold px-8 btn-download-anim text-white"
+                @click="handleMainDownload"
+              >
+                Download Semua
+              </v-btn>
             </div>
 
-            <!-- Search Bar Modern -->
+            <!-- Search Bar -->
             <v-text-field
               v-model="searchQuery"
               prepend-inner-icon="mdi-magnify"
@@ -130,7 +128,7 @@
             </div>
           </v-slide-y-transition>
 
-          <!-- File List Area (Diperlebar tinggi max-nya agar muat banyak file) -->
+          <!-- File List Area -->
           <div class="file-area custom-scrollbar pa-4 pa-md-6">
             <template v-if="data.type === 'folder'">
               
@@ -208,7 +206,7 @@
             </template>
           </div>
 
-          <!-- Footer Resmi -->
+          <!-- Footer -->
           <v-footer class="bg-grey-lighten-4 border-top px-6 px-md-8 py-4 d-flex justify-space-between align-center flex-wrap gap-2">
             <span class="footer-text">
               <b class="brand">EDPSBYDRIVE</b>
@@ -313,6 +311,14 @@ const isDragging = ref(false);
 const { data, pending, error } = await useFetch<any>(() => 
   `${getBaseUrl()}/api/public/share-info/${shareId}`
 );
+
+// 🔥 WATCHER: Memastikan data anak langsung ter-load otomatis saat respons API siap
+watch(data, (newData) => {
+  if (newData && newData.type === 'folder') {
+    items.value = newData.children || [];
+    loadThumbnails();
+  }
+}, { immediate: true });
 
 const filteredItems = computed(() => {
   if (!searchQuery.value) return items.value;
@@ -490,7 +496,12 @@ function handleMainDownload() {
   }, 800);
 }
 
-onMounted(() => fetchFolder(null));
+onMounted(() => {
+  if (data.value) {
+    items.value = data.value.children || [];
+    loadThumbnails();
+  }
+});
 
 function formatSize(bytes: any) {
   if (!bytes) return "0 Bytes";
@@ -578,7 +589,6 @@ function getIconConfig(item: any) {
   font-weight: 500;
 }
 
-/* Diperlebar area tinggi list file-nya (max-height 550px) */
 .file-area {
   min-height: 340px;
   max-height: 580px;
