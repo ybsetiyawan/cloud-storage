@@ -21,4 +21,14 @@ export default defineNuxtConfig({
     },
   },
   css: ["vuetify/styles", "@mdi/font/css/materialdesignicons.css"],
+
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+      ]
+    }
+  }
+
 });
