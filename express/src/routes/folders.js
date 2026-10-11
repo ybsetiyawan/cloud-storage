@@ -361,6 +361,41 @@ router.get("/:id/download", auth, async (req, res) => {
     console.error(err);
     if (!res.headersSent) res.status(500).json({ error: "Download folder failed" });
   }
+
+
+  
+});
+
+// UPDATE PUBLIC SHARE SETTINGS (allow_upload & allowed_extensions)
+router.put("/:id/share-settings", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const folderId = req.params.id;
+    const { allow_upload, allowed_extensions, allow_download } = req.body;
+
+    const result = await pool.query(
+      `UPDATE folders 
+       SET allow_upload = $1, allowed_extensions = $2, allow_download = $3
+       WHERE id = $4 AND user_id = $5
+       RETURNING *`,
+      [
+        allow_upload !== undefined ? allow_upload : false, 
+        allowed_extensions || null, 
+        allow_download !== undefined ? allow_download : true, // Default true jika tidak dikirim
+        folderId, 
+        userId
+      ]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "folder not found" });
+    }
+
+    res.json({ success: true, folder: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "failed to update share settings" });
+  }
 });
 
 module.exports = router;

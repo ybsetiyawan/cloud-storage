@@ -4,6 +4,8 @@ const cors = require("cors")
 const fs = require("fs")
 const path = require("path")
 const archiver = require("archiver")
+const multer = require("multer") // Menggunakan multer yang sudah ada di proyek Anda
+const { nanoid } = require("nanoid")
 const pool = require("./db") 
 
 // Import Routes
@@ -15,6 +17,12 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+
+// Konfigurasi Multer untuk penyimpanan sementara public upload
+const upload = multer({
+  dest: "temp/",
+  limits: { fileSize: 100 * 1024 * 1024 }, // Batas 100MB
+});
 
 /* =========================
     ROUTES API (PRIVATE)
@@ -43,9 +51,9 @@ app.get("/api/public/share-info/:shareId", async (req, res) => {
       return res.json(fileCheck.rows[0]);
     }
 
-    // 2. Jika tidak ada, cari di tabel FOLDERS
+    // 2. Jika tidak ada, cari di tabel FOLDERS (Menyertakan allow_upload & allowed_extensions)
     const folderCheck = await pool.query(
-      `SELECT id, name, share_id, 'folder' as type 
+      `SELECT id, name, share_id, allow_upload, allowed_extensions, allow_download, 'folder' as type 
        FROM folders WHERE share_id = $1 AND is_public = true`,
       [shareId]
     );
@@ -78,71 +86,6 @@ app.get("/api/public/share-info/:shareId", async (req, res) => {
 
 
 /* ==========================================================
-    🔥 PUBLIC DOWNLOAD FILE (VIA SHARE_ID)
-    Digunakan untuk file tunggal yang di-share
-   ========================================================== */
-// app.get("/s/:shareId", async (req, res) => {
-//   try {
-//     const { shareId } = req.params;
-//     const result = await pool.query(
-//       `SELECT * FROM files WHERE share_id=$1 AND is_public=true`,
-//       [shareId]
-//     );
-
-//     const file = result.rows[0];
-//     if (!file) return res.status(404).send("File not found");
-
-//     const filePath = path.resolve(file.path);
-//     if (!fs.existsSync(filePath)) return res.status(404).send("Physical file missing");
-
-//     res.setHeader("Content-Type", file.mime_type);
-//     res.setHeader("Content-Disposition", `attachment; filename="${file.original_name}"`);
-//     fs.createReadStream(filePath).pipe(res);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send("Server error");
-//   }
-// });
-
-
-// /* ==========================================================
-//     🔥 PUBLIC DOWNLOAD FOLDER (ZIP)
-//     Mengompres folder yang di-share menjadi ZIP
-//    ========================================================== */
-// app.get("/sf/:shareId", async (req, res) => {
-//   try {
-//     const { shareId } = req.params;
-//     const folderResult = await pool.query(
-//       `SELECT * FROM folders WHERE share_id=$1 AND is_public=true`,
-//       [shareId]
-//     );
-
-//     const folder = folderResult.rows[0];
-//     if (!folder) return res.status(404).send("Folder not found");
-
-//     const files = await pool.query(`SELECT * FROM files WHERE folder_id=$1`, [folder.id]);
-
-//     res.setHeader("Content-Type", "application/zip");
-//     res.setHeader("Content-Disposition", `attachment; filename="${folder.name}.zip"`);
-
-//     const archive = archiver("zip", { zlib: { level: 9 } });
-//     archive.pipe(res);
-
-//     files.rows.forEach(file => {
-//       const filePath = path.resolve(file.path);
-//       if (fs.existsSync(filePath)) {
-//         archive.file(filePath, { name: file.original_name });
-//       }
-//     });
-
-//     await archive.finalize();
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send("Error generating ZIP");
-//   }
-// });
-
-/* ==========================================================
     🔥 PUBLIC DOWNLOAD FOLDER (ZIP) - REKURSIF
    ========================================================== */
 app.get("/sf/:shareId", async (req, res) => {
@@ -162,9 +105,7 @@ app.get("/sf/:shareId", async (req, res) => {
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.pipe(res);
 
-    // Fungsi rekursif untuk memasukkan file dan sub-folder ke ZIP
     async function addFolderToZip(currentFolderId, zipPath) {
-      // 1. Ambil semua file di folder ini
       const files = await pool.query(`SELECT * FROM files WHERE folder_id=$1`, [currentFolderId]);
       for (const file of files.rows) {
         const filePath = path.resolve(file.path);
@@ -173,16 +114,13 @@ app.get("/sf/:shareId", async (req, res) => {
         }
       }
 
-      // 2. Ambil semua sub-folder di dalam folder ini
       const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id=$1`, [currentFolderId]);
       for (const sub of subfolders.rows) {
         await addFolderToZip(sub.id, path.join(zipPath, sub.name));
       }
     }
 
-    // Mulai proses rekursif dari root folder yang di-share
     await addFolderToZip(folder.id, "");
-
     await archive.finalize();
   } catch (err) {
     console.error(err);
@@ -192,63 +130,12 @@ app.get("/sf/:shareId", async (req, res) => {
 
 
 /* ==========================================================
-   🔥 DOWNLOAD FOLDER BY ID (UNTUK SUBFOLDER TANPA SHARE_ID) - REKURSIF
-   ========================================================== */
-// app.get("/api/public/download-folder/:folderId", async (req, res) => {
-//   try {
-//     const { folderId } = req.params;
-
-//     const folderResult = await pool.query(
-//       `SELECT * FROM folders WHERE id = $1`,
-//       [folderId]
-//     );
-
-//     const folder = folderResult.rows[0];
-//     if (!folder) return res.status(404).send("Folder not found");
-
-//     res.setHeader("Content-Type", "application/zip");
-//     res.setHeader(
-//       "Content-Disposition",
-//       `attachment; filename="${folder.name}.zip"`
-//     );
-
-//     const archive = archiver("zip", { zlib: { level: 9 } });
-//     archive.pipe(res);
-
-//     // Fungsi rekursif untuk subfolder
-//     async function addFolderToZip(currentFolderId, zipPath) {
-//       const files = await pool.query(`SELECT * FROM files WHERE folder_id = $1`, [currentFolderId]);
-//       for (const file of files.rows) {
-//         const filePath = path.resolve(file.path);
-//         if (fs.existsSync(filePath)) {
-//           archive.file(filePath, { name: path.join(zipPath, file.original_name) });
-//         }
-//       }
-
-//       const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id = $1`, [currentFolderId]);
-//       for (const sub of subfolders.rows) {
-//         await addFolderToZip(sub.id, path.join(zipPath, sub.name));
-//       }
-//     }
-
-//     await addFolderToZip(folderId, "");
-
-//     await archive.finalize();
-//   } catch (err) {
-//     console.error(err);
-//     if (!res.headersSent) res.status(500).send("Error download folder");
-//   }
-// });
-
-
-/* ==========================================================
    🔥 DOWNLOAD SUBFOLDER BY ID (HANYA ISI FOLDER TERSEBUT)
   ========================================================== */
 app.get("/api/public/download-folder/:folderId", async (req, res) => {
   try {
     const { folderId } = req.params;
 
-    // 1. Ambil folder spesifik yang sedang dibuka (misal: folder "tes")
     const folderResult = await pool.query(
       `SELECT * FROM folders WHERE id = $1`,
       [folderId]
@@ -256,6 +143,11 @@ app.get("/api/public/download-folder/:folderId", async (req, res) => {
 
     const folder = folderResult.rows[0];
     if (!folder) return res.status(404).send("Folder not found");
+
+    // 🔥 VALIDASI: Cek apakah folder mengizinkan download
+    if (folder.allow_download === false) {
+      return res.status(403).send("Pengunduhan dinonaktifkan untuk folder ini");
+    }
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
@@ -266,9 +158,7 @@ app.get("/api/public/download-folder/:folderId", async (req, res) => {
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.pipe(res);
 
-    // 2. Fungsi Rekursif HANYA untuk subfolder di dalam folder ini ke bawah
     async function addSubFolderToZip(currentFolderId, zipPath) {
-      // Ambil file yang benar-benar ada di dalam folder ini saja
       const files = await pool.query(`SELECT * FROM files WHERE folder_id = $1`, [currentFolderId]);
       for (const file of files.rows) {
         const filePath = path.resolve(file.path);
@@ -277,16 +167,13 @@ app.get("/api/public/download-folder/:folderId", async (req, res) => {
         }
       }
 
-      // Ambil subfolder di dalamnya
       const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id = $1`, [currentFolderId]);
       for (const sub of subfolders.rows) {
         await addSubFolderToZip(sub.id, path.join(zipPath, sub.name));
       }
     }
 
-    // Mulai arsip dari folder target (bukan root share)
     await addSubFolderToZip(folderId, "");
-
     await archive.finalize();
   } catch (err) {
     console.error(err);
@@ -322,71 +209,21 @@ app.get("/api/public/folder-content/:id", async (req, res) => {
 });
 
 
-/* ==========================================================
-   🔥 DOWNLOAD FOLDER BY ID (UNTUK SUBFOLDER TANPA SHARE_ID)
-   ========================================================== */
-app.get("/api/public/download-folder/:folderId", async (req, res) => {
-  try {
-    const { folderId } = req.params;
 
-    // ambil folder
-    const folderResult = await pool.query(
-      `SELECT * FROM folders WHERE id = $1`,
-      [folderId]
-    );
-
-    const folder = folderResult.rows[0];
-    if (!folder) return res.status(404).send("Folder not found");
-
-    // ambil semua file dalam folder (RECURSIVE kalau mau advanced)
-    const files = await pool.query(
-      `SELECT * FROM files WHERE folder_id = $1`,
-      [folderId]
-    );
-
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${folder.name}.zip"`
-    );
-
-    const archive = archiver("zip", { zlib: { level: 9 } });
-    archive.pipe(res);
-
-    for (const file of files.rows) {
-      const filePath = path.resolve(file.path);
-      if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: file.original_name });
-      }
-    }
-
-    await archive.finalize();
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error download folder");
-  }
-});
-
-
-/* ==========================================================
-    🔥 NEW: DOWNLOAD INDIVIDUAL FILE INSIDE PUBLIC FOLDER
-    Mendownload file di dalam list folder share (menggunakan ID asli)
-   ========================================================== */
 app.get("/api/public/download-file/:fileId", async (req, res) => {
   try {
     const { fileId } = req.params;
 
-    // 🔥 ambil file + parent chain
     const result = await pool.query(
       `
       WITH RECURSIVE folder_tree AS (
-        SELECT id, parent_id, is_public
+        SELECT id, parent_id, is_public, allow_download
         FROM folders
         WHERE id = (SELECT folder_id FROM files WHERE id = $1)
 
         UNION ALL
 
-        SELECT f.id, f.parent_id, f.is_public
+        SELECT f.id, f.parent_id, f.is_public, f.allow_download
         FROM folders f
         INNER JOIN folder_tree ft ON ft.parent_id = f.id
       )
@@ -394,7 +231,10 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
         f.*, 
         EXISTS (
           SELECT 1 FROM folder_tree WHERE is_public = true
-        ) as is_allowed
+        ) as is_allowed,
+        (
+          SELECT allow_download FROM folder_tree ORDER BY id LIMIT 1
+        ) as folder_allow_download
       FROM files f
       WHERE f.id = $1
       `,
@@ -404,26 +244,126 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
     const file = result.rows[0];
     if (!file) return res.status(404).send("File not found");
 
-    // 🔥 cek akses
+    // Cek akses publik folder
     if (!file.is_allowed && !file.is_public) {
-      return res.status(403).send("Unauthorized access to this file");
+      return res.status(403).send("Unauthorized access");
+    }
+
+    // 🔥 VALIDASI: Cek apakah folder mengizinkan download (jika kolom false, tolak pengunduhan)
+    if (file.folder_allow_download === false) {
+      return res.status(403).send("Pengunduhan file dinonaktifkan untuk folder ini");
     }
 
     const filePath = path.resolve(file.path);
     if (!fs.existsSync(filePath)) {
-      return res.status(404).send("File missing on server");
+      return res.status(404).send("File missing on disk");
     }
 
     res.setHeader("Content-Type", file.mime_type);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${file.original_name}"`
-    );
-
+    res.setHeader("Content-Disposition", `inline; filename="${file.original_name}"`);
     fs.createReadStream(filePath).pipe(res);
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal server error");
+  }
+});
+
+
+/* ==========================================================
+    🔥 PUBLIC UPLOAD FILE KE FOLDER YANG DI-SHARE (MENGGUNAKAN MULTER)
+   ========================================================== */
+app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // 1. Cek folder berdasarkan share_id / token dan pastikan publik
+    const folderRes = await pool.query(
+      "SELECT id, user_id, allow_upload, allowed_extensions FROM folders WHERE share_id = $1 AND is_public = true",
+      [token]
+    );
+
+    if (folderRes.rowCount === 0) {
+      if (req.files) req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
+      return res.status(404).json({ error: "Folder publik tidak ditemukan" });
+    }
+
+    const folder = folderRes.rows[0];
+
+    // 2. Validasi apakah folder mengizinkan upload publik
+    if (!folder.allow_upload) {
+      if (req.files) req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
+      return res.status(403).json({ error: "Folder ini tidak mengizinkan unggahan publik" });
+    }
+
+    // 3. Validasi keberadaan file
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "Tidak ada file yang diunggah" });
+    }
+
+    let totalUploadedSize = 0;
+
+    for (const file of req.files) {
+      const originalName = file.originalname;
+      const fileExtension = originalName.split(".").pop().toLowerCase();
+
+      // 4. Validasi ekstensi file jika dibatasi (allowed_extensions)
+      if (folder.allowed_extensions) {
+        const allowedList = folder.allowed_extensions
+          .split(",")
+          .map(ext => ext.trim().toLowerCase());
+
+        if (!allowedList.includes(fileExtension)) {
+          // Hapus semua file yang terlanjur di-upload di temp
+          req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
+          return res.status(400).json({ 
+            error: `Ekstensi .${fileExtension} pada file "${originalName}" tidak diizinkan. Ekstensi valid: ${folder.allowed_extensions}` 
+          });
+        }
+      }
+
+      // 5. Tentukan penyimpanan akhir (mengikuti fungsi buildPath atau direktori uploads Anda)
+      const fileId = nanoid(16);
+      const ext = path.extname(originalName);
+      
+      const uploadDir = path.join(__dirname, "uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const targetPath = path.join(uploadDir, `${fileId}${ext}`);
+
+      // Pindahkan dari temp ke storage
+      if (fs.existsSync(file.path)) {
+        fs.renameSync(file.path, targetPath);
+      }
+
+      const fileSize = file.size;
+      const mimeType = file.mimetype || "application/octet-stream";
+      const fileShareId = nanoid(10);
+
+
+      // 6. Simpan data ke tabel files
+      await pool.query(
+        `INSERT INTO files (id, user_id, folder_id, original_name, stored_name, path, size, mime_type, share_id, is_public)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)`,
+        [fileId, folder.user_id, folder.id, originalName, `${fileId}${ext}`, targetPath, fileSize, mimeType, fileShareId]
+      );
+
+      totalUploadedSize += fileSize;
+    }
+
+    // 7. Update total kuota terpakai pemilik folder (users)
+    if (totalUploadedSize > 0) {
+      await pool.query(
+        `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
+        [totalUploadedSize, folder.user_id]
+      );
+    }
+
+    res.json({ success: true, message: `${req.files.length} file berhasil diunggah oleh publik!` });
+  } catch (err) {
+    console.error("PUBLIC UPLOAD ERROR:", err);
+    if (req.files) req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
+    res.status(500).json({ error: "Gagal mengunggah file publik" });
   }
 });
 

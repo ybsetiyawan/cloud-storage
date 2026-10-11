@@ -1,0 +1,9 @@
+10-10-26
+
+ALTER TABLE folders 
+ADD COLUMN allow_upload BOOLEAN DEFAULT FALSE,
+ADD COLUMN allowed_extensions TEXT DEFAULT NULL;
+
+-- Menambahkan kolom allow_download dengan nilai default true (artinya secara normal tetap boleh download)
+ALTER TABLE folders 
+ADD COLUMN allow_download BOOLEAN DEFAULT true;

@@ -1,7 +1,6 @@
 <template>
   <v-app class="shared-page-bg">
     <v-main class="d-flex align-center justify-center">
-      <!-- Container dibatasi max-width agar tidak overflow di layar besar -->
       <v-container class="py-6 px-4 px-md-6" style="max-width: 1000px; width: 100%;">
         
         <!-- Loading State -->
@@ -30,7 +29,7 @@
           </v-btn>
         </v-card>
 
-        <!-- Main Content Card dengan Efek Garis Mengitari Sudut Card -->
+        <!-- Main Content Card -->
         <div v-else class="magic-border-card mx-auto rounded-2xl">
           <v-card class="border-0 elevation-6 rounded-2xl bg-white overflow-hidden position-relative inner-card">
             
@@ -66,20 +65,38 @@
                   </div>
                 </div>
 
-                <!-- Download Button -->
-                <v-btn
-                  color="blue-darken-2"
-                  elevation="2"
-                  size="large"
-                  rounded="pill"
-                  prepend-icon="mdi-download-outline"
-                  :loading="isDownloading"
-                  :disabled="selectedItems.length > 0"
-                  class="text-none font-weight-semibold px-6 btn-download-anim text-white"
-                  @click="handleMainDownload"
-                >
-                  Download Semua
-                </v-btn>
+                <!-- Action Buttons: Upload & Download -->
+                <div class="d-flex align-center gap-2 flex-wrap">
+                  <!-- Tombol Upload Publik -->
+                  <v-btn
+                    v-if="data?.allow_upload"
+                    color="success"
+                    elevation="2"
+                    size="large"
+                    rounded="pill"
+                    prepend-icon="mdi-cloud-upload-outline"
+                    class="text-none font-weight-semibold px-5 text-white btn-download-anim"
+                    @click="triggerPublicUpload"
+                  >
+                    Upload File
+                  </v-btn>
+
+                  <!-- Tombol Download Semua (Hanya muncul jika allow_download true) -->
+                  <v-btn
+                    v-if="data?.allow_download !== false"
+                    color="blue-darken-2"
+                    elevation="2"
+                    size="large"
+                    rounded="pill"
+                    prepend-icon="mdi-download-outline"
+                    :loading="isDownloading"
+                    :disabled="selectedItems.length > 0"
+                    class="text-none font-weight-semibold px-6 btn-download-anim text-white"
+                    @click="handleMainDownload"
+                  >
+                    Download Semua
+                  </v-btn>
+                </div>
               </div>
 
               <!-- Search Bar -->
@@ -100,7 +117,7 @@
 
             <!-- Bulk Action Bar -->
             <v-slide-y-transition>
-              <div v-if="selectedItems.length > 0" class="bulk-bar-modern d-flex align-center px-6 py-3 bg-blue-lighten-5 border-bottom-light">
+              <div v-if="selectedItems.length > 0 && data?.allow_download !== false" class="bulk-bar-modern d-flex align-center px-6 py-3 bg-blue-lighten-5 border-bottom-light">
                 <v-checkbox
                   v-model="isAllSelected"
                   :indeterminate="isIndeterminate"
@@ -151,6 +168,7 @@
                 >
                   <div class="file-main d-flex align-center mr-4 min-width-0 flex-grow-1">
                     <v-checkbox
+                      v-if="data?.allow_download !== false"
                       v-model="selectedMap[item.id]"
                       @click.stop
                       density="compact"
@@ -186,7 +204,8 @@
                     </div>
                   </div>
 
-                  <div class="file-actions d-flex align-center">
+                  <!-- Tombol Download per item (Hanya muncul jika allow_download true) -->
+                  <div v-if="data?.allow_download !== false" class="file-actions d-flex align-center">
                     <v-tooltip text="Download" location="top">
                       <template v-slot:activator="{ props }">
                         <v-btn
@@ -272,15 +291,72 @@
 
         <v-divider class="border-opacity-25"></v-divider>
         <v-card-actions class="px-6 py-3 bg-white">
-          <div class="text-caption text-grey">Gunakan tombol putar, kontrol zoom, atau scroll mouse pada area gambar.</div>
+          <div class="text-caption text-grey">Pratinjau berkas gambar.</div>
           <v-spacer />
-          <v-btn color="blue-darken-2" variant="tonal" class="text-none px-5 rounded-pill font-weight-medium" @click="downloadItem(previewItem)">
+          <v-btn v-if="data?.allow_download !== false" color="blue-darken-2" variant="tonal" class="text-none px-5 rounded-pill font-weight-medium" @click="downloadItem(previewItem)">
             <v-icon start>mdi-download-outline</v-icon> Download
           </v-btn>
           <v-btn variant="plain" class="text-none px-4 text-grey-darken-2" @click="showPreviewDialog = false">Tutup</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Dialog Progress Bar Upload Publik -->
+    <v-dialog v-model="showUploadDialog" max-width="500" persistent scrollable>
+      <v-card class="rounded-2xl bg-white border-light text-grey-darken-4 elevation-4">
+        <v-card-title class="d-flex align-center justify-space-between py-4 px-6">
+          <span class="text-subtitle-1 font-weight-bold">Mengunggah Berkas</span>
+          <v-chip size="small" color="success" class="font-weight-bold text-white">{{ uploadProgress.length }} File</v-chip>
+        </v-card-title>
+        <v-divider class="border-opacity-25"></v-divider>
+        <div class="pa-4 bg-grey-lighten-5">
+          <div class="d-flex justify-space-between text-caption mb-1 font-weight-bold text-grey-darken-3">
+            <span>Total Progress</span>
+            <span>{{ Math.round(overallProgress) }}%</span>
+          </div>
+          <v-progress-linear :model-value="overallProgress" height="8" color="success" striped rounded />
+        </div>
+        <v-divider class="border-opacity-25"></v-divider>
+        <v-card-text style="height: 250px;" class="pa-0">
+          <v-list lines="one" class="pa-0 bg-transparent">
+            <v-list-item v-for="(f, idx) in uploadProgress" :key="idx" class="py-1 px-4 border-bottom-light">
+              <template v-slot:prepend>
+                <v-icon size="18" :color="f.progress === 100 ? 'success' : 'grey'">
+                  {{ f.progress === 100 ? 'mdi-check-circle' : 'mdi-file-upload-outline' }}
+                </v-icon>
+              </template>
+              <v-list-item-title class="text-caption text-truncate font-weight-medium text-grey-darken-3" style="max-width: 230px;">
+                {{ f.name }}
+              </v-list-item-title>
+              <template v-slot:append>
+                <div style="width: 110px" class="ml-4 d-flex align-center">
+                  <v-progress-linear :model-value="f.progress" height="6" :color="f.progress === 100 ? 'success' : 'blue-darken-2'" rounded />
+                  <span class="text-caption ml-2 font-weight-bold text-grey-darken-3" style="min-width: 32px">{{ f.progress }}%</span>
+                </div>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-divider class="border-opacity-25"></v-divider>
+        <v-card-actions class="px-6 py-3">
+          <v-spacer />
+          <span class="text-caption text-grey">Mohon jangan tutup halaman ini...</span>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Toast / Snackbar Notifikasi Elegan -->
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" rounded="pill" location="top">
+      <div class="d-flex align-center font-weight-medium">
+        <v-icon start size="20" class="mr-2">
+          {{ snackbarColor === 'success' ? 'mdi-check-circle-outline' : 'mdi-alert-circle-outline' }}
+        </v-icon>
+        {{ snackbarText }}
+      </div>
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbar = false">Tutup</v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -314,13 +390,27 @@ const zoomScale = ref(1);
 const rotationAngle = ref(0);
 const isDragging = ref(false);
 
-const { data, pending, error } = await useFetch<any>(() => 
+const snackbar = ref(false);
+const snackbarText = ref("");
+const snackbarColor = ref("success");
+const showUploadDialog = ref(false);
+const uploadProgress = ref<{ name: string; progress: number }[]>([]);
+
+const overallProgress = computed(() => {
+  if (uploadProgress.value.length === 0) return 0;
+  const total = uploadProgress.value.reduce((acc, curr) => acc + curr.progress, 0);
+  return total / uploadProgress.value.length;
+});
+
+const { data, pending, error, refresh } = await useFetch<any>(() => 
   `${getBaseUrl()}/api/public/share-info/${shareId}`
 );
 
 watch(data, (newData) => {
   if (newData && newData.type === 'folder') {
-    items.value = newData.children || [];
+    if (!currentFolderId.value) {
+      items.value = newData.children || [];
+    }
     loadThumbnails();
   }
 }, { immediate: true });
@@ -369,6 +459,7 @@ async function fetchFolder(folderId: string | null = null) {
   try {
     const baseUrl = getBaseUrl();
     if (!folderId) {
+      await refresh();
       items.value = data.value?.children || [];
     } else {
       const res = await $fetch<any[]>(`${baseUrl}/api/public/folder-content/${folderId}`);
@@ -393,11 +484,11 @@ async function loadThumbnails() {
   for (const imgItem of imageFiles) {
     if (!thumbnailMap.value[imgItem.id]) {
       try {
-        const endpoint = imgItem.share_id ? `${baseUrl}/s/${imgItem.share_id}` : `${baseUrl}/api/public/download-file/${imgItem.id}`;
+        const endpoint = `${baseUrl}/api/public/download-file/${imgItem.id}`;
         const res = await $fetch<Blob>(endpoint, { responseType: "blob" });
         thumbnailMap.value[imgItem.id] = window.URL.createObjectURL(res);
       } catch (e) {
-        console.error("Gagal load thumbnail");
+        // Silent fail untuk thumbnail
       }
     }
   }
@@ -409,12 +500,12 @@ async function openPreview(item: any) {
   rotationAngle.value = 0;
   const baseUrl = getBaseUrl();
   try {
-    const endpoint = item.share_id ? `${baseUrl}/s/${item.share_id}` : `${baseUrl}/api/public/download-file/${item.id}`;
+    const endpoint = `${baseUrl}/api/public/download-file/${item.id}`;
     const res = await $fetch<Blob>(endpoint, { responseType: "blob" });
     previewUrl.value = window.URL.createObjectURL(res);
     showPreviewDialog.value = true;
   } catch (err) {
-    alert("Gagal memuat preview gambar.");
+    showToast("Gagal memuat pratinjau gambar.", "error");
   }
 }
 
@@ -454,14 +545,86 @@ function goRoot() {
   fetchFolder(null);
 }
 
+function showToast(text: string, color = "success") {
+  snackbarText.value = text;
+  snackbarColor.value = color;
+  snackbar.value = true;
+}
+
+function triggerPublicUpload() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.multiple = true;
+
+  input.onchange = async () => {
+    if (!input.files || input.files.length === 0) return;
+    const filesArr = Array.from(input.files);
+
+    if (data.value?.allowed_extensions) {
+      const allowedList = data.value.allowed_extensions
+        .split(",")
+        .map((ext: string) => ext.trim().toLowerCase());
+
+      for (const file of filesArr) {
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+        if (!allowedList.includes(fileExt)) {
+          showToast(`Format file .${fileExt} ditolak. Ekstensi yang diizinkan: ${data.value.allowed_extensions}`, "error");
+          return;
+        }
+      }
+    }
+
+    uploadProgress.value = filesArr.map((f) => ({ name: f.name, progress: 0 }));
+    showUploadDialog.value = true;
+
+    const baseUrl = getBaseUrl();
+    const uploadUrl = `${baseUrl}/api/public/shared/${shareId}/upload`;
+    const formData = new FormData();
+
+    filesArr.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", uploadUrl);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            uploadProgress.value.forEach(item => { item.progress = percent; });
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error("Gagal mengunggah"));
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(formData);
+      });
+
+      showUploadDialog.value = false;
+      showToast(`${filesArr.length} file berhasil diunggah!`);
+      await fetchFolder(currentFolderId.value);
+    } catch (err) {
+      showUploadDialog.value = false;
+      showToast("Terjadi kesalahan saat mengunggah file.", "error");
+    }
+  };
+
+  input.click();
+}
+
 async function downloadItem(item: any) {
+  if (data.value?.allow_download === false) {
+    showToast("Pengunduhan dinonaktifkan untuk folder ini.", "error");
+    return;
+  }
+
   const baseUrl = getBaseUrl();
-  const path = item.type === "folder" ? "download-folder" : "download-file";
-  const prefix = item.type === "folder" ? "sf" : "s";
-  
-  const url = item.share_id 
-    ? `${baseUrl}/${prefix}/${item.share_id}` 
-    : `${baseUrl}/api/public/${path}/${item.id}`;
+  let url = item.type === "folder" 
+    ? (item.share_id ? `${baseUrl}/sf/${item.share_id}` : `${baseUrl}/api/public/download-folder/${item.id}`)
+    : `${baseUrl}/api/public/download-file/${item.id}`;
 
   try {
     const response = await fetch(url);
@@ -477,12 +640,12 @@ async function downloadItem(item: any) {
     link.remove();
     window.URL.revokeObjectURL(downloadUrl);
   } catch (err) {
-    window.open(url, "_blank");
+    showToast("Gagal mengunduh berkas.", "error");
   }
 }
 
 async function downloadSelectedItems(itemsToDown: any[]) {
-  if (!itemsToDown.length) return;
+  if (!itemsToDown.length || data.value?.allow_download === false) return;
   itemsToDown.forEach((item, index) => {
     setTimeout(() => {
       downloadItem(item);
@@ -491,7 +654,7 @@ async function downloadSelectedItems(itemsToDown: any[]) {
 }
 
 function handleMainDownload() {
-  if (!data.value) return;
+  if (!data.value || data.value?.allow_download === false) return;
   isDownloading.value = true;
   
   setTimeout(() => {
@@ -540,25 +703,22 @@ function getIconConfig(item: any) {
   }
 }
 </script>
+
 <style scoped>
 .shared-page-bg {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   min-height: 95vh;
 }
 
-/* ========================================================= */
-/* EFEK GARIS NEON BERGERAK SEPERTI TITIK CAHAYA / RUNNING LED */
-/* ========================================================= */
 .magic-border-card {
   position: relative;
   border-radius: 18px;
   background: #ffffff;
-  padding: 2.5px; /* Ketebalan garis neon */
+  padding: 2.5px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
-/* Membuat efek garis berjalan (hanya segmen tertentu yang terang) */
 .magic-border-card::before {
   content: '';
   position: absolute;
