@@ -6,6 +6,32 @@ const auth = require("../middleware/auth");
 const router = express.Router();
 const archiver = require('archiver');
 
+// // CREATE FOLDER
+// router.post("/", auth, async (req, res) => {
+//   try {
+//     const { name, parent_id } = req.body;
+//     const userId = req.user.id;
+//     console.log("BODY:", req.body);
+
+//     if (!name) {
+//       return res.status(400).json({ error: "name required" });
+//     }
+
+//     const id = nanoid(16);
+
+//     await pool.query(
+//       `INSERT INTO folders(id, user_id, name, parent_id)
+//        VALUES($1,$2,$3,$4)`,
+//       [id, userId, name, parent_id || null],
+//     );
+
+//     res.json({ success: true, id });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "create folder failed" });
+//   }
+// });
+
 // CREATE FOLDER
 router.post("/", auth, async (req, res) => {
   try {
@@ -15,6 +41,17 @@ router.post("/", auth, async (req, res) => {
 
     if (!name) {
       return res.status(400).json({ error: "name required" });
+    }
+
+    // ✅ VALIDASI DUPLIKASI CASE-INSENSITIVE (Menggunakan LOWER agar huruf besar/kecil dianggap sama)
+    const duplicateCheck = await pool.query(
+      `SELECT id FROM folders 
+       WHERE user_id = $1 AND LOWER(name) = LOWER($2) AND (parent_id IS NOT DISTINCT FROM $3)`,
+      [userId, name, parent_id || null]
+    );
+
+    if (duplicateCheck.rowCount > 0) {
+      return res.status(400).json({ error: "Folder dengan nama tersebut sudah ada di direktori ini." });
     }
 
     const id = nanoid(16);
@@ -54,6 +91,7 @@ router.get("/", auth, async (req, res) => {
 
 // RENAME FOLDER
 
+// RENAME FOLDER
 router.put("/:id/rename", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -64,10 +102,37 @@ router.put("/:id/rename", auth, async (req, res) => {
       return res.status(400).json({ error: "name required" });
     }
 
+    // 1. Ambil parent_id dari folder yang sedang di-rename untuk mengecek direktori yang sama
+    const folderCheck = await pool.query(
+      `SELECT parent_id FROM folders WHERE id = $1 AND user_id = $2`,
+      [folderId, userId]
+    );
+
+    if (folderCheck.rowCount === 0) {
+      return res.status(404).json({ error: "folder not found" });
+    }
+
+    const parentId = folderCheck.rows[0].parent_id;
+
+    // 2. Cek duplikasi nama (case-insensitive), Kecuali untuk folder itu sendiri (id != folderId)
+    const duplicateCheck = await pool.query(
+      `SELECT id FROM folders 
+       WHERE user_id = $1 
+         AND LOWER(name) = LOWER($2) 
+         AND (parent_id IS NOT DISTINCT FROM $3) 
+         AND id != $4`,
+      [userId, name, parentId || null, folderId]
+    );
+
+    if (duplicateCheck.rowCount > 0) {
+      return res.status(400).json({ error: "Folder dengan nama tersebut sudah ada di direktori ini." });
+    }
+
+    // 3. Eksekusi Update Nama Folder
     const result = await pool.query(
       `UPDATE folders 
-       SET name=$1 
-       WHERE id=$2 AND user_id=$3
+       SET name = $1 
+       WHERE id = $2 AND user_id = $3
        RETURNING *`,
       [name, folderId, userId],
     );
@@ -78,6 +143,7 @@ router.put("/:id/rename", auth, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "rename folder failed" });
   }
 });

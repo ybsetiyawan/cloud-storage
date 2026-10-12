@@ -2,17 +2,17 @@
   <v-container fluid class="pa-3 px-md-6 modern-clean-container">
     
     <!-- Header Command Center -->
-    <v-card class="elevation-0 top-header-card rounded-2xl mb-3 pa-3 bg-white">
+    <v-card class="elevation-0 top-header-card rounded-xl mb-3 pa-3 bg-white">
       <div class="d-flex align-center justify-space-between flex-wrap gap-3">
         
         <!-- Breadcrumb & Brand -->
         <div class="d-flex align-center gap-2 overflow-x-auto min-width-0">
-          <div class="breadcrumb-box d-flex align-center gap-1.5 px-3 py-1 rounded-xl">
+          <div class="breadcrumb-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
             <span class="crumb-item root" @click="goRoot">
-              <v-icon size="14" class="mr-1 text-primary">mdi-home-outline</v-icon> root
+              <v-icon size="16" class="mr-1 text-primary">mdi-home-outline</v-icon> root
             </span>
             <template v-for="(b, i) in displayBreadcrumbs" :key="i">
-              <span class="text-grey-lighten-2 mx-0.5">/</span>
+              <span class="text-grey-dark-4 mx-0.5">/</span>
               <span v-if="b === '...'" class="text-grey">...</span>
               <span
                 v-else
@@ -28,14 +28,14 @@
 
         <!-- Action Buttons -->
         <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn size="small" variant="tonal" color="amber-darken-3" class="text-none px-4 rounded-pill font-weight-semibold" @click="createFolder">
-            <v-icon start size="15">mdi-folder-plus-outline</v-icon> Folder
+          <v-btn size="small" variant="tonal" color="amber-darken-3" class="mr-2 text-none px-4 rounded-pill font-weight-semibold" @click="createFolder">
+            <v-icon start size="16">mdi-folder-plus-outline</v-icon> Folder
           </v-btn>
-          <v-btn size="small" variant="tonal" color="deep-orange-darken-2" class="text-none px-4 rounded-pill font-weight-semibold" @click="uploadFiles('folder')">
-            <v-icon start size="15">mdi-folder-upload-outline</v-icon> Up Folder
+          <v-btn size="small" variant="tonal" color="deep-orange-darken-2" class="mr-2 text-none px-4 rounded-pill font-weight-semibold" @click="uploadFiles('folder')">
+            <v-icon start size="16">mdi-folder-upload-outline</v-icon> Up Folder
           </v-btn>
           <v-btn size="small" color="primary" variant="flat" class="text-none px-4.5 rounded-pill font-weight-semibold text-white elevation-0" @click="uploadFiles('file')">
-            <v-icon start size="15">mdi-cloud-upload-outline</v-icon> Upload File
+            <v-icon start size="16">mdi-cloud-upload-outline</v-icon> Upload File
           </v-btn>
         </div>
 
@@ -60,7 +60,7 @@
 
     <!-- Bulk Action Bar -->
     <v-slide-y-transition>
-      <div v-if="selectedItems.length > 0" class="bulk-action-bar d-flex align-center px-4 py-2 mb-3 rounded-2xl flex-wrap gap-2 elevation-1">
+      <div v-if="selectedItems.length > 0" class="bulk-action-bar d-flex align-center px-4 py-2.5 mb-3 rounded-xl flex-wrap gap-2 elevation-1">
         <v-checkbox
           v-model="isAllSelected"
           :indeterminate="isIndeterminate"
@@ -71,16 +71,16 @@
           class="mr-2 text-grey-darken-4 font-weight-bold"
           label="Pilih Semua"
         />
-        <span class="text-caption font-weight-bold text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill">
+        <span class="text-body-2 font-weight-bold text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill">
           {{ selectedItems.length }} item dipilih
         </span>
         <v-spacer />
         <div class="d-flex align-center gap-2">
-          <v-btn size="small" color="primary" variant="flat" class="text-none rounded-pill px-4 font-weight-medium text-white" @click="downloadSelectedItems(selectedItems)">
-            <v-icon start size="14">mdi-download</v-icon> Download
+          <v-btn size="small" color="primary" variant="flat" class="mr-2 text-none rounded-pill px-4 font-weight-medium text-white" @click="downloadSelectedItems(selectedItems)">
+            <v-icon start size="15">mdi-download</v-icon> Download
           </v-btn>
-          <v-btn size="small" color="error" variant="flat" class="text-none rounded-pill px-4 font-weight-medium text-white" @click="confirmDelete(selectedItems)">
-            <v-icon start size="14">mdi-delete</v-icon> Hapus
+          <v-btn size="small" color="error" variant="flat" class="mr-2 text-none rounded-pill px-4 font-weight-medium text-white" @click="confirmDelete(selectedItems)">
+            <v-icon start size="15">mdi-delete</v-icon> Hapus
           </v-btn>
           <v-btn size="small" variant="text" class="text-none text-grey-darken-2" @click="clearSelection">Batal</v-btn>
         </div>
@@ -88,7 +88,7 @@
     </v-slide-y-transition>
 
     <!-- Main File List Card -->
-    <v-card class="list-container-card elevation-0 rounded-2xl bg-white clean-card-border">
+    <v-card class="list-container-card elevation-0 rounded-xl bg-white clean-card-border">
       <div class="scroll-wrapper custom-scrollbar pa-2">
         
         <!-- Loading State -->
@@ -99,7 +99,7 @@
         <!-- Empty State -->
         <div v-else-if="filteredItems.length === 0" class="text-center py-16 text-grey-lighten-1">
           <v-icon size="56" class="mb-2 text-grey-lighten-2">mdi-folder-open-outline</v-icon>
-          <div class="text-body-2 font-weight-medium text-grey-darken-3">Direktori ini kosong</div>
+          <div class="text-body-1 font-weight-medium text-grey-darken-3">Direktori ini kosong</div>
         </div>
 
         <!-- Item Rows -->
@@ -112,7 +112,7 @@
             @click="handleClick(item)"
             @dblclick="handleDoubleClick(item)"
           >
-            <!-- Kiri: Checkbox, Icon, Nama & Metadata (Tanpa label Folder) -->
+            <!-- Kiri: Checkbox, Icon, Nama & Metadata -->
             <div class="d-flex align-center min-width-0 flex-grow-1 mr-4">
               <v-checkbox
                 v-model="selectedMap[item.id]"
@@ -126,34 +126,34 @@
               <!-- Ikon Ekstensi & Aplikasi -->
               <div class="file-icon-box shadow-sm flex-shrink-0 mr-4" :class="getIconConfig(item).class">
                 <template v-if="isImageFile(item) && thumbnailMap[item.id]">
-                  <v-img :src="thumbnailMap[item.id]" cover width="42" height="42" class="rounded-xl" />
+                  <v-img :src="thumbnailMap[item.id]" cover width="44" height="44" class="rounded-lg" />
                 </template>
                 <template v-else-if="isImageFile(item)">
-                  <v-progress-circular indeterminate size="16" width="2" color="grey" />
+                  <v-progress-circular indeterminate size="18" width="2" color="grey" />
                 </template>
                 <template v-else>
-                  <v-icon size="22">{{ getIconConfig(item).icon }}</v-icon>
+                  <v-icon size="24">{{ getIconConfig(item).icon }}</v-icon>
                 </template>
               </div>
 
               <div class="min-width-0 flex-grow-1">
                 <div class="d-flex align-center flex-wrap gap-2">
-                  <span class="mr-1 text-body-2 text-truncate font-weight-semibold text-grey-darken-4 item-title">
+                  <span class="mr-2 text-subtitle-2 text-truncate font-weight-semibold text-grey-darken-4 item-title">
                     {{ item.name || item.original_name }}
                   </span>
                   
                   <!-- Badges Status -->
-                  <v-chip v-if="item.is_public && item.type === 'folder'" size="x-small" color="blue" variant="tonal" class="mr-1 font-weight-bold px-2 item-badge">Shared</v-chip>
+                  <v-chip v-if="item.is_public && item.type === 'folder'" size="small" color="blue" variant="tonal" class="mr-1 font-weight-bold px-2.5 item-badge">Shared</v-chip>
                   
                   <!-- Badge Upload Aktif + Ekstensi yang diizinkan -->
-                  <v-chip v-if="item.allow_upload && item.type === 'folder'" size="x-small" color="success" variant="tonal" class="mr-1 font-weight-bold px-2.5 item-badge">
+                  <v-chip v-if="item.allow_upload && item.type === 'folder'" size="small" color="success" variant="tonal" class="mr-1 font-weight-bold px-3 item-badge">
                     Upload: {{ item.allowed_extensions ? item.allowed_extensions : 'Semua File' }}
                   </v-chip>
 
-                  <v-chip v-if="item.allow_download === false && item.type === 'folder'" size="x-small" color="error" variant="tonal" class="font-weight-bold px-2 item-badge">No DL</v-chip>
+                  <v-chip v-if="item.allow_download === false && item.type === 'folder'" size="small" color="error" variant="tonal" class="font-weight-bold px-2.5 item-badge">No DL</v-chip>
                 </div>
 
-                <div class="d-flex align-center text-caption text-grey-darken-1 mt-1 item-meta gap-2">
+                <div class="d-flex align-center text-body-2 text-grey-darken-1 mt-1 item-meta gap-2">
                   <span v-if="item.type !== 'folder'" class="font-weight-bold text-primary">
                     {{ formatSize(item.size) }}
                   </span>
@@ -165,30 +165,30 @@
 
             <!-- Kanan: Action Buttons (Hover Effect) -->
             <div class="row-actions d-flex align-center gap-1 flex-shrink-0">
-              <v-btn v-if="item.type === 'folder'" icon size="x-small" variant="text" color="blue-grey" class="rounded-circle" @click.stop="openShareSettings(item)">
-                <v-icon size="16">mdi-cog-outline</v-icon>
+              <v-btn v-if="item.type === 'folder'" icon size="small" variant="text" color="blue-grey" class="rounded-circle" @click.stop="openShareSettings(item)">
+                <v-icon size="18">mdi-cog-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Pengaturan Publik</v-tooltip>
               </v-btn>
-              <v-btn v-if="isImageFile(item)" icon size="x-small" variant="text" color="purple" class="rounded-circle" @click.stop="openPreview(item)">
-                <v-icon size="16">mdi-eye-outline</v-icon>
+              <v-btn v-if="isImageFile(item)" icon size="small" variant="text" color="purple" class="rounded-circle" @click.stop="openPreview(item)">
+                <v-icon size="18">mdi-eye-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Preview</v-tooltip>
               </v-btn>
-              <v-btn icon size="x-small" variant="text" color="primary" class="rounded-circle" @click.stop="handleDownload(item)">
-                <v-icon size="16">mdi-download-outline</v-icon>
+              <v-btn icon size="small" variant="text" color="primary" class="rounded-circle" @click.stop="handleDownload(item)">
+                <v-icon size="18">mdi-download-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Download</v-tooltip>
               </v-btn>
-              <v-btn icon size="x-small" variant="text" color="green" class="rounded-circle" @click.stop="openRenameDialog(item)">
-                <v-icon size="16">mdi-pencil-outline</v-icon>
+              <v-btn icon size="small" variant="text" color="green" class="rounded-circle" @click.stop="openRenameDialog(item)">
+                <v-icon size="18">mdi-pencil-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Ubah Nama</v-tooltip>
               </v-btn>
-              <v-btn icon size="x-small" variant="text" color="grey-darken-3" class="rounded-circle" @click.stop="shareItems([item])">
-                <v-icon size="16" :color="item.is_public ? 'primary' : ''">
+              <v-btn icon size="small" variant="text" color="grey-darken-3" class="rounded-circle" @click.stop="shareItems([item])">
+                <v-icon size="18" :color="item.is_public ? 'primary' : ''">
                   {{ item.is_public ? "mdi-link-variant" : "mdi-share-variant-outline" }}
                 </v-icon>
                 <v-tooltip activator="parent" location="top">Bagikan Link</v-tooltip>
               </v-btn>
-              <v-btn icon size="x-small" variant="text" color="error" class="rounded-circle" @click.stop="confirmDelete([item])">
-                <v-icon size="16">mdi-delete-outline</v-icon>
+              <v-btn icon size="small" variant="text" color="error" class="rounded-circle" @click.stop="confirmDelete([item])">
+                <v-icon size="18">mdi-delete-outline</v-icon>
                 <v-tooltip activator="parent" location="top">Hapus</v-tooltip>
               </v-btn>
             </div>
@@ -200,16 +200,16 @@
 
     <!-- Dialog Preview Gambar -->
     <v-dialog v-model="showPreviewDialog" max-width="800" transition="dialog-bottom-transition">
-      <v-card class="rounded-2xl overflow-hidden shadow-lg clean-card-border bg-white">
+      <v-card class="rounded-xl overflow-hidden shadow-lg clean-card-border bg-white">
         <v-card-title class="d-flex justify-space-between align-center px-5 py-3 bg-grey-lighten-4 text-grey-darken-4">
-          <span class="text-subtitle-2 text-truncate font-weight-medium">{{ previewItem?.name || previewItem?.original_name }}</span>
+          <span class="text-subtitle-1 text-truncate font-weight-medium">{{ previewItem?.name || previewItem?.original_name }}</span>
           <div class="d-flex align-center gap-1">
-            <v-btn icon variant="text" size="x-small" color="grey-darken-3" @click="rotateImage"><v-icon size="16">mdi-rotate-right</v-icon></v-btn>
-            <v-btn icon variant="text" size="x-small" color="grey-darken-3" @click="zoomOut"><v-icon size="16">mdi-magnify-minus-outline</v-icon></v-btn>
-            <span class="text-caption px-1 font-weight-mono text-grey-darken-2" style="font-size: 11px;">{{ Math.round(zoomScale * 100) }}%</span>
-            <v-btn icon variant="text" size="x-small" color="grey-darken-3" @click="zoomIn"><v-icon size="16">mdi-magnify-plus-outline</v-icon></v-btn>
-            <v-btn icon variant="text" size="x-small" color="grey-darken-3" @click="resetZoom"><v-icon size="16">mdi-refresh</v-icon></v-btn>
-            <v-btn icon variant="text" size="x-small" color="grey-darken-3" @click="showPreviewDialog = false" class="ml-2"><v-icon size="16">mdi-close</v-icon></v-btn>
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="rotateImage"><v-icon size="18">mdi-rotate-right</v-icon></v-btn>
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomOut"><v-icon size="18">mdi-magnify-minus-outline</v-icon></v-btn>
+            <span class="text-body-2 px-1 font-weight-mono text-grey-darken-2">{{ Math.round(zoomScale * 100) }}%</span>
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="zoomIn"><v-icon size="18">mdi-magnify-plus-outline</v-icon></v-btn>
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="resetZoom"><v-icon size="18">mdi-refresh</v-icon></v-btn>
+            <v-btn icon variant="text" size="small" color="grey-darken-3" @click="showPreviewDialog = false" class="ml-2"><v-icon size="18">mdi-close</v-icon></v-btn>
           </div>
         </v-card-title>
         <v-card-text class="text-center pa-0 bg-grey-lighten-5 d-flex align-center justify-center overflow-hidden position-relative" style="height: 480px;" @wheel.prevent="handleWheelZoom">
@@ -218,11 +218,11 @@
             <v-progress-circular v-else indeterminate color="primary" size="32" />
           </div>
         </v-card-text>
-        <v-card-actions class="px-5 py-2.5 bg-white">
-          <span class="text-caption text-grey" style="font-size: 11px;">Gunakan scroll mouse atau tombol kontrol untuk zoom.</span>
+        <v-card-actions class="px-5 py-3 bg-white">
+          <span class="text-body-2 text-grey">Gunakan scroll mouse atau tombol kontrol untuk zoom.</span>
           <v-spacer />
           <v-btn size="small" color="primary" variant="tonal" class="text-none px-4 rounded-pill font-weight-medium" @click="handleDownload(previewItem)">
-            <v-icon start size="14">mdi-download</v-icon> Download
+            <v-icon start size="16">mdi-download</v-icon> Download
           </v-btn>
           <v-btn size="small" variant="plain" class="text-none text-grey-darken-2" @click="showPreviewDialog = false">Tutup</v-btn>
         </v-card-actions>
@@ -231,16 +231,16 @@
 
     <!-- Dialog Pengaturan Publik -->
     <v-dialog v-model="showShareSettingsDialog" max-width="420">
-      <v-card class="rounded-2xl pa-4 bg-white clean-card-border text-grey-darken-4 elevation-4">
+      <v-card class="rounded-xl pa-4 bg-white clean-card-border text-grey-darken-4 elevation-4">
         <v-card-title class="font-weight-bold px-3 pt-2 text-subtitle-1 d-flex align-center justify-between">
           <span>Akses Publik</span>
-          <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-medium">{{ activeFolderForShare?.name }}</v-chip>
+          <v-chip size="small" color="primary" variant="tonal" class="font-weight-medium">{{ activeFolderForShare?.name }}</v-chip>
         </v-card-title>
         <v-card-text class="px-3 py-2">
-          <div class="text-caption text-grey-darken-2 mb-3">Atur hak akses pengunjung publik untuk folder ini.</div>
-          <v-switch v-model="settingAllowUpload" color="success" label="Izinkan Public Upload" density="compact" hide-details class="mb-2 text-body-2" />
-          <v-switch v-model="settingAllowDownload" color="primary" label="Izinkan Publik Download" density="compact" hide-details class="mb-2 text-body-2" />
-          <v-text-field v-model="settingAllowedExtensions" label="Batasan Ekstensi Upload (Opsional)" placeholder="pdf,jpg,png,docx" density="compact" variant="outlined" bg-color="white" color="primary" class="rounded-xl mt-2 text-body-2" hide-details />
+          <div class="text-body-2 text-grey-darken-2 mb-3">Atur hak akses pengunjung publik untuk folder ini.</div>
+          <v-switch v-model="settingAllowUpload" color="success" label="Izinkan Public Upload" density="compact" hide-details class="mb-2 text-body-1" />
+          <v-switch v-model="settingAllowDownload" color="primary" label="Izinkan Publik Download" density="compact" hide-details class="mb-2 text-body-1" />
+          <v-text-field v-model="settingAllowedExtensions" label="Batasan Ekstensi Upload (Opsional)" placeholder="pdf,jpg,png,docx" density="comfortable" variant="outlined" bg-color="white" color="primary" class="rounded-xl mt-2 text-body-1" hide-details />
         </v-card-text>
         <v-card-actions class="px-3 pb-2">
           <v-spacer />
@@ -252,10 +252,10 @@
 
     <!-- Dialog Rename -->
     <v-dialog v-model="showRenameDialog" max-width="380">
-      <v-card class="rounded-2xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
-        <v-card-title class="font-weight-bold px-3 pt-3 text-subtitle-2">Ubah Nama</v-card-title>
+      <v-card class="rounded-xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
+        <v-card-title class="font-weight-bold px-3 pt-3 text-subtitle-1">Ubah Nama</v-card-title>
         <v-card-text class="px-3 pt-1">
-          <v-text-field v-model="renameValue" label="Nama Baru" autofocus density="compact" variant="outlined" bg-color="white" color="primary" class="rounded-xl" hide-details @keyup.enter="submitRename" />
+          <v-text-field v-model="renameValue" label="Nama Baru" autofocus density="comfortable" variant="outlined" bg-color="white" color="primary" class="rounded-xl text-body-1" hide-details @keyup.enter="submitRename" />
         </v-card-text>
         <v-card-actions class="px-3 pb-2">
           <v-spacer />
@@ -267,9 +267,9 @@
 
     <!-- Dialog Konfirmasi Hapus -->
     <v-dialog v-model="showDeleteDialog" max-width="380">
-      <v-card class="rounded-2xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
-        <v-card-title class="font-weight-bold text-error px-2 text-subtitle-2">Konfirmasi Hapus</v-card-title>
-        <v-card-text class="px-2 text-caption text-grey-darken-2">Yakin ingin menghapus <b>{{ itemsToDelete.length }}</b> item terpilih?</v-card-text>
+      <v-card class="rounded-xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
+        <v-card-title class="font-weight-bold text-error px-2 text-subtitle-1">Konfirmasi Hapus</v-card-title>
+        <v-card-text class="px-2 text-body-2 text-grey-darken-2">Yakin ingin menghapus <b>{{ itemsToDelete.length }}</b> item terpilih?</v-card-text>
         <v-card-actions class="px-2 pb-1">
           <v-spacer />
           <v-btn size="small" variant="text" class="text-none text-grey-darken-2" @click="showDeleteDialog = false">Batal</v-btn>
@@ -278,16 +278,33 @@
       </v-card>
     </v-dialog>
 
+    <!-- Dialog Konfirmasi Overwrite File -->
+    <v-dialog v-model="showOverwriteDialog" max-width="400" persistent>
+      <v-card class="rounded-xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
+        <v-card-title class="font-weight-bold text-warning px-3 pt-3 text-subtitle-1 d-flex align-center gap-2">
+          <v-icon color="warning">mdi-alert-outline</v-icon> File Sudah Ada
+        </v-card-title>
+        <v-card-text class="px-3 pt-2 text-body-2 text-grey-darken-2">
+          Berkas dengan nama <b>"{{ conflictingFileName }}"</b> sudah ada di direktori ini. Apakah Anda ingin menimpanya?
+        </v-card-text>
+        <v-card-actions class="px-3 pb-2">
+          <v-spacer />
+          <v-btn size="small" variant="text" class="text-none text-grey-darken-2" @click="handleOverwriteChoice(false)">Lewati</v-btn>
+          <v-btn size="small" color="primary" variant="flat" class="text-none rounded-pill px-5 font-weight-medium text-white" @click="handleOverwriteChoice(true)">Timpa</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Dialog Upload Progress -->
     <v-dialog v-model="showUploadDialog" max-width="450" persistent scrollable>
-      <v-card class="rounded-2xl bg-white clean-card-border text-grey-darken-4 elevation-4">
-        <v-card-title class="d-flex align-center justify-space-between py-2 px-4 text-subtitle-2 font-weight-bold">
+      <v-card class="rounded-xl bg-white clean-card-border text-grey-darken-4 elevation-4">
+        <v-card-title class="d-flex align-center justify-space-between py-2 px-4 text-subtitle-1 font-weight-bold">
           <span>Mengunggah Berkas</span>
-          <v-chip size="x-small" color="primary" class="font-weight-bold text-white">{{ uploadProgress.length }} File</v-chip>
+          <v-chip size="small" color="primary" class="font-weight-bold text-white">{{ uploadProgress.length }} File</v-chip>
         </v-card-title>
         <v-divider class="border-opacity-25" />
         <div class="pa-3 bg-grey-lighten-5">
-          <div class="d-flex justify-space-between text-caption mb-1 font-weight-bold text-grey-darken-3" style="font-size: 11px;">
+          <div class="d-flex justify-space-between text-body-2 mb-1 font-weight-bold text-grey-darken-3">
             <span>Total Progress</span>
             <span>{{ Math.round(overallProgress) }}%</span>
           </div>
@@ -297,12 +314,12 @@
         <v-card-text style="height: 220px;" class="pa-0">
           <v-list lines="one" class="pa-0 bg-transparent">
             <v-list-item v-for="(f, idx) in uploadProgress" :key="idx" class="py-1 px-3 border-bottom-light">
-              <template v-slot:prepend><v-icon size="16" :color="f.progress === 100 ? 'success' : 'grey'">{{ f.progress === 100 ? 'mdi-check-circle' : 'mdi-file-upload-outline' }}</v-icon></template>
-              <v-list-item-title class="text-caption text-truncate font-weight-medium text-grey-darken-3" style="font-size: 11.5px; max-width: 200px;">{{ f.name }}</v-list-item-title>
+              <template v-slot:prepend><v-icon size="18" :color="f.progress === 100 ? 'success' : 'grey'">{{ f.progress === 100 ? 'mdi-check-circle' : 'mdi-file-upload-outline' }}</v-icon></template>
+              <v-list-item-title class="text-body-2 text-truncate font-weight-medium text-grey-darken-3" style="max-width: 220px;">{{ f.name }}</v-list-item-title>
               <template v-slot:append>
-                <div style="width: 100px" class="ml-3 d-flex align-center">
-                  <v-progress-linear :model-value="f.progress" height="5" :color="f.progress === 100 ? 'success' : 'primary'" rounded />
-                  <span class="text-caption ml-1.5 font-weight-bold text-grey-darken-3" style="font-size: 10.5px; min-width: 28px">{{ f.progress }}%</span>
+                <div style="width: 110px" class="ml-3 d-flex align-center">
+                  <v-progress-linear :model-value="f.progress" height="6" :color="f.progress === 100 ? 'success' : 'primary'" rounded />
+                  <span class="text-body-2 ml-2 font-weight-bold text-grey-darken-3" style="min-width: 32px">{{ f.progress }}%</span>
                 </div>
               </template>
             </v-list-item>
@@ -310,17 +327,17 @@
         </v-card-text>
         <v-divider class="border-opacity-25" />
         <v-card-actions class="px-4 py-2">
-          <span class="text-caption text-grey" style="font-size: 10.5px;">Mohon jangan menutup halaman ini...</span>
+          <span class="text-body-2 text-grey">Mohon jangan menutup halaman ini...</span>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Dialog Create Folder -->
     <v-dialog v-model="showCreateDialog" max-width="380">
-      <v-card class="rounded-2xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
-        <v-card-title class="font-weight-bold px-3 pt-3 text-subtitle-2">Buat Folder Baru</v-card-title>
+      <v-card class="rounded-xl pa-3 bg-white clean-card-border text-grey-darken-4 elevation-4">
+        <v-card-title class="font-weight-bold px-3 pt-3 text-subtitle-1">Buat Folder Baru</v-card-title>
         <v-card-text class="px-3 pt-1">
-          <v-text-field v-model="newFolderName" label="Nama Folder" autofocus density="compact" variant="outlined" bg-color="white" color="primary" class="rounded-xl" hide-details @keyup.enter="submitCreateFolder" />
+          <v-text-field v-model="newFolderName" label="Nama Folder" autofocus density="comfortable" variant="outlined" bg-color="white" color="primary" class="rounded-xl text-body-1" hide-details @keyup.enter="submitCreateFolder" />
         </v-card-text>
         <v-card-actions class="px-3 pb-2">
           <v-spacer />
@@ -330,10 +347,17 @@
       </v-card>
     </v-dialog>
 
-    <!-- Snackbar -->
-    <v-snackbar v-model="snackbar" color="success" timeout="2200" rounded="pill">
-      {{ snackbarText }}
-      <template v-slot:actions><v-btn variant="text" @click="snackbar = false">Tutup</v-btn></template>
+    <!-- Snackbar / Toast Notification (Posisi: Top Right) -->
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" rounded="pill" location="top right" class="mt-16 mr-4">
+      <div class="d-flex align-center gap-2">
+        <v-icon size="20">
+          {{ snackbarColor === 'error' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+        </v-icon>
+        <span class="font-weight-medium">{{ snackbarText }}</span>
+      </div>
+      <template v-slot:actions>
+        <v-btn variant="text" class="text-white" @click="snackbar = false">Tutup</v-btn>
+      </template>
     </v-snackbar>
   </v-container>
 </template>
@@ -378,13 +402,35 @@ const settingAllowUpload = ref(false);
 const settingAllowedExtensions = ref("");
 const settingAllowDownload = ref(true);
 
+const showOverwriteDialog = ref(false);
+const conflictingFileName = ref("");
+let overwriteResolve: ((value: boolean) => void) | null = null;
+
+function promptOverwrite(fileName: string): Promise<boolean> {
+  conflictingFileName.value = fileName;
+  showOverwriteDialog.value = true;
+  return new Promise((resolve) => {
+    overwriteResolve = resolve;
+  });
+}
+
+function handleOverwriteChoice(choice: boolean) {
+  showOverwriteDialog.value = false;
+  if (overwriteResolve) {
+    overwriteResolve(choice);
+    overwriteResolve = null;
+  }
+}
+
 const overallProgress = computed(() => {
   if (uploadProgress.value.length === 0) return 0;
   const total = uploadProgress.value.reduce((acc, curr) => acc + curr.progress, 0);
   return total / uploadProgress.value.length;
 });
+
 const snackbar = ref(false);
 const snackbarText = ref("");
+const snackbarColor = ref("success");
 
 const selectedItems = computed(() =>
   [...folders.value, ...files.value].filter((i) => selectedMap.value[i.id]),
@@ -483,7 +529,9 @@ async function openPreview(item: any) {
     previewUrl.value = window.URL.createObjectURL(response);
     showPreviewDialog.value = true;
   } catch (err) {
-    alert("Gagal memuat preview.");
+    snackbarColor.value = "error";
+    snackbarText.value = "Gagal memuat preview.";
+    snackbar.value = true;
   }
 }
 
@@ -493,7 +541,6 @@ function rotateImage() { rotationAngle.value = (rotationAngle.value + 90) % 360;
 function resetZoom() { zoomScale.value = 1; rotationAngle.value = 0; }
 function handleWheelZoom(e: WheelEvent) { if (e.deltaY < 0) zoomIn(); else zoomOut(); }
 
-// Klasifikasi Ikon Berdasarkan Ekstensi & Aplikasi (.exe, .msi, dll)
 function getIconConfig(item: any) {
   if (item.type === "folder") return { icon: "mdi-folder", class: "icon-folder-clean" };
   const ext = (item.name || item.original_name || "").split(".").pop()?.toLowerCase();
@@ -577,11 +624,14 @@ async function saveShareSettings() {
       },
     });
     showShareSettingsDialog.value = false;
+    snackbarColor.value = "success";
     snackbarText.value = "Pengaturan berhasil disimpan!";
     snackbar.value = true;
     fetchFolderContent(currentFolderId.value);
   } catch (err) {
-    alert("Gagal menyimpan pengaturan.");
+    snackbarColor.value = "error";
+    snackbarText.value = "Gagal menyimpan pengaturan.";
+    snackbar.value = true;
   }
 }
 
@@ -593,12 +643,15 @@ async function shareItems(items: any[]) {
     const res = (await $api(endpoint, { method: "POST" })) as any;
     if (res.link) {
       if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(res.link);
+      snackbarColor.value = "success";
       snackbarText.value = "Link berhasil disalin!";
       snackbar.value = true;
       fetchFolderContent(currentFolderId.value);
     }
   } catch (err) {
-    alert("Gagal membagikan.");
+    snackbarColor.value = "error";
+    snackbarText.value = "Gagal membagikan.";
+    snackbar.value = true;
   }
 }
 
@@ -618,10 +671,13 @@ async function executeDelete() {
     showDeleteDialog.value = false;
     clearSelection();
     fetchFolderContent(currentFolderId.value);
+    snackbarColor.value = "success";
     snackbarText.value = "Item berhasil dihapus.";
     snackbar.value = true;
   } catch (err) {
-    alert("Gagal menghapus.");
+    snackbarColor.value = "error";
+    snackbarText.value = "Gagal menghapus.";
+    snackbar.value = true;
   }
 }
 
@@ -639,12 +695,15 @@ async function handleDownload(item: any) {
     link.remove();
     window.URL.revokeObjectURL(downloadUrl);
   } catch (err) {
-    alert("Gagal mendownload.");
+    snackbarColor.value = "error";
+    snackbarText.value = "Gagal mendownload.";
+    snackbar.value = true;
   }
 }
 
 async function downloadSelectedItems(items: any[]) {
   for (const item of items) await handleDownload(item);
+  snackbarColor.value = "success";
   snackbarText.value = `${items.length} item didownload.`;
   snackbar.value = true;
 }
@@ -658,27 +717,51 @@ function openRenameDialog(item: any) {
 async function submitRename() {
   if (!renameValue.value || !itemToRename.value) return;
   try {
-    const endpoint = itemToRename.value.type === "folder" ? `/folders/${itemToRename.value.id}/rename` : `/files/${itemToRename.value.id}/rename`;
+    const endpoint = itemToRename.value.type === "folder" 
+      ? `/folders/${itemToRename.value.id}/rename` 
+      : `/files/${itemToRename.value.id}/rename`;
+      
     await $api(endpoint, { method: "PUT", body: { name: renameValue.value } });
+    
     showRenameDialog.value = false;
     fetchFolderContent(currentFolderId.value);
-    snackbarText.value = "Nama diubah.";
+    
+    snackbarColor.value = "success";
+    snackbarText.value = "Nama berhasil diubah.";
     snackbar.value = true;
-  } catch (err) { alert("Gagal mengubah nama."); }
+  } catch (err: any) {
+    const errorMessage = err?.data?.error || err?.message || "Gagal mengubah nama.";
+    snackbarColor.value = "error";
+    snackbarText.value = errorMessage;
+    snackbar.value = true;
+  }
 }
 
 function createFolder() { showCreateDialog.value = true; }
+
 async function submitCreateFolder() {
   if (!newFolderName.value) return;
   try {
-    await $api("/folders", { method: "POST", body: { name: newFolderName.value, parent_id: currentFolderId.value } });
+    await $api("/folders", { 
+      method: "POST", 
+      body: { name: newFolderName.value, parent_id: currentFolderId.value } 
+    });
+    
     showCreateDialog.value = false;
     newFolderName.value = "";
     fetchFolderContent(currentFolderId.value);
-  } catch (err) { alert("Gagal membuat folder."); }
+    
+    snackbarColor.value = "success";
+    snackbarText.value = "Folder berhasil dibuat!";
+    snackbar.value = true;
+  } catch (err: any) {
+    const errorMessage = err?.data?.error || err?.message || "Gagal membuat folder.";
+    snackbarColor.value = "error";
+    snackbarText.value = errorMessage;
+    snackbar.value = true;
+  }
 }
 
-// Format Tanggal dan Waktu Presisi
 function formatDateTime(d: any) {
   if (!d) return "-";
   const dateObj = new Date(d);
@@ -709,9 +792,30 @@ function uploadFiles(mode = 'file') {
     const token = localStorage.getItem("admin_token");
     const uploadUrl = `${window.location.protocol}//${window.location.hostname}:8090/api/files/upload`;
 
+    let hasError = false;
+    let errorMsg = "";
+    let uploadedCount = 0;
+
     for (let i = 0; i < filesArr.length; i++) {
       const file = filesArr[i];
       if (!file) continue;
+
+      const fileName = file.name;
+      const isDuplicate = files.value.some(
+        (fItem) => (fItem.name || fItem.original_name || "").toLowerCase() === fileName.toLowerCase()
+      );
+
+      if (isDuplicate && mode !== 'folder') {
+        showUploadDialog.value = false;
+        const shouldOverwrite = await promptOverwrite(fileName);
+        showUploadDialog.value = true;
+
+        if (!shouldOverwrite) {
+          if (uploadProgress.value[i]) uploadProgress.value[i].progress = 100;
+          continue; 
+        }
+      }
+
       const formData = new FormData();
       if (currentFolderId.value) formData.append("folder_id", String(currentFolderId.value));
       formData.append("fullPath", file.webkitRelativePath || file.name);
@@ -726,17 +830,43 @@ function uploadFiles(mode = 'file') {
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable && currentItem) currentItem.progress = Math.round((e.loaded / e.total) * 100);
           };
-          xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject());
-          xhr.onerror = () => reject();
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              try {
+                const resJson = JSON.parse(xhr.responseText);
+                reject(new Error(resJson.error || "Upload gagal"));
+              } catch (e) {
+                reject(new Error("Upload gagal"));
+              }
+            }
+          };
+          xhr.onerror = () => reject(new Error("Koneksi jaringan gagal"));
           xhr.send(formData);
         });
-      } catch (err) {}
+        uploadedCount++;
+      } catch (err: any) {
+        hasError = true;
+        errorMsg = err.message;
+        break; 
+      }
     }
 
-    setTimeout(() => {
-      showUploadDialog.value = false;
+    showUploadDialog.value = false;
+
+    if (hasError) {
+      snackbarColor.value = "error";
+      snackbarText.value = `Gagal mengunggah: ${errorMsg}`;
+      snackbar.value = true;
+    } else {
       fetchFolderContent(currentFolderId.value);
-    }, 600);
+      snackbarColor.value = "success";
+      snackbarText.value = mode === 'folder' 
+        ? `Berhasil mengunggah folder (${filesArr.length} berkas)` 
+        : `Berhasil mengunggah ${uploadedCount} berkas`;
+      snackbar.value = true;
+    }
   };
   input.click();
 }
@@ -765,21 +895,16 @@ onMounted(() => fetchFolderContent());
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
 }
 
-.brand-badge {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
-}
-
 .breadcrumb-box {
   background: #f1f5f9;
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 .crumb-item {
   cursor: pointer;
   color: #64748b;
   display: flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 6px;
   transition: all 0.15s;
 }
@@ -823,12 +948,12 @@ onMounted(() => fetchFolderContent());
 
 /* Desain Ikon Minimalis Profesional */
 .file-icon-box {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   flex-shrink: 0;
 }
 .icon-folder-clean { background: #fef3c7; color: #d97706; }
@@ -846,17 +971,17 @@ onMounted(() => fetchFolderContent());
 .icon-default-clean { background: #f1f5f9; color: #64748b; }
 
 .item-title {
-  font-size: 13.5px !important;
+  font-size: 14.5px !important;
   letter-spacing: -0.1px;
   color: #1e293b;
 }
 .item-meta {
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .item-badge {
-  height: 18px !important;
-  font-size: 9.5px !important;
+  height: 20px !important;
+  font-size: 10.5px !important;
 }
 
 .row-actions {

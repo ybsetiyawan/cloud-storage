@@ -69,6 +69,63 @@ async function getOrCreateFolderId(fullPath, userId, initialParentId) {
 /* =========================
    UPLOAD MULTI FILE
 ========================= */
+// router.post("/upload", auth, upload.array("files", 1000), async (req, res) => {
+//   const userId = req.user.id;
+//   const initialFolderId = req.body.folder_id || null;
+//   const fullPaths = req.body.fullPath; 
+//   const results = [];
+
+//   try {
+//     const files = req.files || [];
+//     if (!files.length) return res.status(400).json({ error: "no files uploaded" });
+
+//     for (let i = 0; i < files.length; i++) {
+//       const file = files[i];
+      
+//       // Handle jika request datang satu per satu (string) atau sekaligus (array)
+//       let currentPath = Array.isArray(fullPaths) ? fullPaths[i] : fullPaths;
+
+//       try {
+//         // 1. Dapatkan Folder ID secara rekursif
+//         const targetFolderId = await getOrCreateFolderId(currentPath, userId, initialFolderId);
+
+//         // 2. Persiapan simpan file (Variabel yang tadi hilang)
+//         const id = nanoid(16);
+//         const ext = path.extname(file.originalname);
+//         const finalPath = buildPath(userId, id + ext); 
+
+//         // 3. Pindahkan dari temp ke storage asli
+//         if (fs.existsSync(file.path)) {
+//           fs.renameSync(file.path, finalPath);
+//         }
+
+//         // 4. Simpan ke Database
+//         await pool.query(
+//           `INSERT INTO files(id, user_id, folder_id, original_name, stored_name, path, size, mime_type)
+//            VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
+//           [id, userId, targetFolderId, file.originalname, id + ext, finalPath, file.size, file.mimetype]
+//         );
+
+//         // 5. Update Quota
+//         await pool.query(
+//           `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
+//           [file.size, userId]
+//         );
+
+//         results.push({ id, status: "success", name: file.originalname });
+//       } catch (fileErr) {
+//         console.error("Error file:", file.originalname, fileErr);
+//         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+//         results.push({ name: file.originalname, status: "error" });
+//       }
+//     }
+//     res.json({ results });
+//   } catch (err) {
+//     console.error("Upload Global Error:", err);
+//     res.status(500).json({ error: "Upload failed" });
+//   }
+// });
+
 router.post("/upload", auth, upload.array("files", 1000), async (req, res) => {
   const userId = req.user.id;
   const initialFolderId = req.body.folder_id || null;
@@ -89,30 +146,71 @@ router.post("/upload", auth, upload.array("files", 1000), async (req, res) => {
         // 1. Dapatkan Folder ID secara rekursif
         const targetFolderId = await getOrCreateFolderId(currentPath, userId, initialFolderId);
 
-        // 2. Persiapan simpan file (Variabel yang tadi hilang)
+        // 2. Cek apakah file dengan nama yang sama sudah ada di folder tersebut (case-insensitive)
+        const existingFile = await pool.query(
+          `SELECT id, path, size FROM files 
+           WHERE user_id = $1 AND LOWER(original_name) = LOWER($2) AND (folder_id IS NOT DISTINCT FROM $3)`,
+          [userId, file.originalname, targetFolderId]
+        );
+
         const id = nanoid(16);
         const ext = path.extname(file.originalname);
         const finalPath = buildPath(userId, id + ext); 
 
-        // 3. Pindahkan dari temp ke storage asli
-        if (fs.existsSync(file.path)) {
-          fs.renameSync(file.path, finalPath);
+        if (existingFile.rowCount > 0) {
+          // --- JIKA SUDAH ADA: TIMPA (OVERWRITE) ---
+          const oldFile = existingFile.rows[0];
+          const oldSize = parseInt(oldFile.size) || 0;
+
+          // Hapus file fisik lama di storage jika ada
+          if (oldFile.path && fs.existsSync(oldFile.path)) {
+            fs.unlinkSync(oldFile.path);
+          }
+
+          // Pindahkan file baru dari temp ke storage
+          if (fs.existsSync(file.path)) {
+            fs.renameSync(file.path, finalPath);
+          }
+
+          // Update data file lama di database
+          await pool.query(
+            `UPDATE files 
+             SET stored_name = $1, path = $2, size = $3, mime_type = $4, created_at = NOW() 
+             WHERE id = $5`,
+            [id + ext, finalPath, file.size, file.mimetype, oldFile.id]
+          );
+
+          // Update kuota user (selisih antara file baru dan file lama)
+          const sizeDiff = file.size - oldSize;
+          if (sizeDiff !== 0) {
+            await pool.query(
+              `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
+              [sizeDiff, userId]
+            );
+          }
+
+          results.push({ id: oldFile.id, status: "success (overwritten)", name: file.originalname });
+
+        } else {
+          // --- JIKA BELUM ADA: SIMPAN BARU ---
+          if (fs.existsSync(file.path)) {
+            fs.renameSync(file.path, finalPath);
+          }
+
+          await pool.query(
+            `INSERT INTO files(id, user_id, folder_id, original_name, stored_name, path, size, mime_type)
+             VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [id, userId, targetFolderId, file.originalname, id + ext, finalPath, file.size, file.mimetype]
+          );
+
+          await pool.query(
+            `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
+            [file.size, userId]
+          );
+
+          results.push({ id, status: "success", name: file.originalname });
         }
 
-        // 4. Simpan ke Database
-        await pool.query(
-          `INSERT INTO files(id, user_id, folder_id, original_name, stored_name, path, size, mime_type)
-           VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [id, userId, targetFolderId, file.originalname, id + ext, finalPath, file.size, file.mimetype]
-        );
-
-        // 5. Update Quota
-        await pool.query(
-          `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
-          [file.size, userId]
-        );
-
-        results.push({ id, status: "success", name: file.originalname });
       } catch (fileErr) {
         console.error("Error file:", file.originalname, fileErr);
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);

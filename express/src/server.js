@@ -275,6 +275,7 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
 app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (req, res) => {
   try {
     const { token } = req.params;
+    const folderIdFromBody = req.body.folder_id || null; // Dukungan jika ada subfolder publik
 
     // 1. Cek folder berdasarkan share_id / token dan pastikan publik
     const folderRes = await pool.query(
@@ -288,6 +289,8 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
     }
 
     const folder = folderRes.rows[0];
+    // Tentukan target folder id (bisa folder utama share atau subfolder di dalamnya)
+    const targetFolderId = folderIdFromBody || folder.id;
 
     // 2. Validasi apakah folder mengizinkan upload publik
     if (!folder.allow_upload) {
@@ -300,7 +303,7 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
       return res.status(400).json({ error: "Tidak ada file yang diunggah" });
     }
 
-    let totalUploadedSize = 0;
+    let netSizeDifference = 0; // Menghitung selisih kuota jika ada overwrite
 
     for (const file of req.files) {
       const originalName = file.originalname;
@@ -313,7 +316,6 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
           .map(ext => ext.trim().toLowerCase());
 
         if (!allowedList.includes(fileExtension)) {
-          // Hapus semua file yang terlanjur di-upload di temp
           req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
           return res.status(400).json({ 
             error: `Ekstensi .${fileExtension} pada file "${originalName}" tidak diizinkan. Ekstensi valid: ${folder.allowed_extensions}` 
@@ -321,45 +323,74 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
         }
       }
 
-      // 5. Tentukan penyimpanan akhir (mengikuti fungsi buildPath atau direktori uploads Anda)
+      // Cek apakah file dengan nama yang sama sudah ada di folder tersebut (Case-insensitive)
+      const existingFile = await pool.query(
+        `SELECT id, path, size FROM files 
+         WHERE folder_id = $1 AND LOWER(original_name) = LOWER($2)`,
+        [targetFolderId, originalName]
+      );
+
       const fileId = nanoid(16);
       const ext = path.extname(originalName);
-      
       const uploadDir = path.join(__dirname, "uploads");
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
       const targetPath = path.join(uploadDir, `${fileId}${ext}`);
-
-      // Pindahkan dari temp ke storage
-      if (fs.existsSync(file.path)) {
-        fs.renameSync(file.path, targetPath);
-      }
-
       const fileSize = file.size;
       const mimeType = file.mimetype || "application/octet-stream";
       const fileShareId = nanoid(10);
 
+      if (existingFile.rowCount > 0) {
+        // --- JIKA SUDAH ADA: TIMPA (OVERWRITE) ---
+        const oldFile = existingFile.rows[0];
+        const oldSize = parseInt(oldFile.size) || 0;
 
-      // 6. Simpan data ke tabel files
-      await pool.query(
-        `INSERT INTO files (id, user_id, folder_id, original_name, stored_name, path, size, mime_type, share_id, is_public)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)`,
-        [fileId, folder.user_id, folder.id, originalName, `${fileId}${ext}`, targetPath, fileSize, mimeType, fileShareId]
-      );
+        // Hapus file fisik lama di storage
+        if (oldFile.path && fs.existsSync(oldFile.path)) {
+          fs.unlinkSync(oldFile.path);
+        }
 
-      totalUploadedSize += fileSize;
+        // Pindahkan file baru dari temp ke storage
+        if (fs.existsSync(file.path)) {
+          fs.renameSync(file.path, targetPath);
+        }
+
+        // Update data file lama di database
+        await pool.query(
+          `UPDATE files 
+           SET stored_name = $1, path = $2, size = $3, mime_type = $4, created_at = NOW() 
+           WHERE id = $5`,
+          [`${fileId}${ext}`, targetPath, fileSize, mimeType, oldFile.id]
+        );
+
+        netSizeDifference += (fileSize - oldSize);
+
+      } else {
+        // --- JIKA BELUM ADA: INSERT BARU ---
+        if (fs.existsSync(file.path)) {
+          fs.renameSync(file.path, targetPath);
+        }
+
+        await pool.query(
+          `INSERT INTO files (id, user_id, folder_id, original_name, stored_name, path, size, mime_type, share_id, is_public)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)`,
+          [fileId, folder.user_id, targetFolderId, originalName, `${fileId}${ext}`, targetPath, fileSize, mimeType, fileShareId]
+        );
+
+        netSizeDifference += fileSize;
+      }
     }
 
     // 7. Update total kuota terpakai pemilik folder (users)
-    if (totalUploadedSize > 0) {
+    if (netSizeDifference !== 0) {
       await pool.query(
         `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
-        [totalUploadedSize, folder.user_id]
+        [netSizeDifference, folder.user_id]
       );
     }
 
-    res.json({ success: true, message: `${req.files.length} file berhasil diunggah oleh publik!` });
+    res.json({ success: true, message: `${req.files.length} file berhasil diunggah/diperbarui oleh publik!` });
   } catch (err) {
     console.error("PUBLIC UPLOAD ERROR:", err);
     if (req.files) req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));

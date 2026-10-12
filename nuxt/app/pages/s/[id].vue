@@ -91,7 +91,7 @@
                     prepend-icon="mdi-download-outline"
                     :loading="isDownloading"
                     :disabled="selectedItems.length > 0"
-                    class="text-none font-weight-semibold px-6 btn-download-anim text-white"
+                    class="ml-2 text-none font-weight-semibold px-6 btn-download-anim text-white"
                     @click="handleMainDownload"
                   >
                     Download Semua
@@ -301,6 +301,23 @@
       </v-card>
     </v-dialog>
 
+    <!-- Dialog Konfirmasi Overwrite File -->
+    <v-dialog v-model="showOverwriteDialog" max-width="400" persistent>
+      <v-card class="rounded-xl pa-3 bg-white border-light text-grey-darken-4 elevation-4">
+        <v-card-title class="font-weight-bold text-warning px-3 pt-3 text-subtitle-1 d-flex align-center gap-2">
+          <v-icon color="warning">mdi-alert-outline</v-icon> File Sudah Ada
+        </v-card-title>
+        <v-card-text class="px-3 pt-2 text-body-2 text-grey-darken-2">
+          Berkas dengan nama <b>"{{ conflictingFileName }}"</b> sudah ada di direktori ini. Apakah Anda ingin menimpanya?
+        </v-card-text>
+        <v-card-actions class="px-3 pb-2">
+          <v-spacer />
+          <v-btn size="small" variant="text" class="text-none text-grey-darken-2" @click="handleOverwriteChoice(false)">Lewati</v-btn>
+          <v-btn size="small" color="blue-darken-2" variant="flat" class="text-none rounded-pill px-5 font-weight-medium text-white" @click="handleOverwriteChoice(true)">Timpa</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Dialog Progress Bar Upload Publik -->
     <v-dialog v-model="showUploadDialog" max-width="500" persistent scrollable>
       <v-card class="rounded-2xl bg-white border-light text-grey-darken-4 elevation-4">
@@ -345,8 +362,8 @@
       </v-card>
     </v-dialog>
 
-    <!-- Toast / Snackbar Notifikasi Elegan -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" rounded="pill" location="top">
+    <!-- Toast / Snackbar Notifikasi (Posisi: Top Right) -->
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" rounded="pill" location="top right" class="mt-16 mr-4">
       <div class="d-flex align-center font-weight-medium">
         <v-icon start size="20" class="mr-2">
           {{ snackbarColor === 'success' ? 'mdi-check-circle-outline' : 'mdi-alert-circle-outline' }}
@@ -390,11 +407,36 @@ const zoomScale = ref(1);
 const rotationAngle = ref(0);
 const isDragging = ref(false);
 
+const showOverwriteDialog = ref(false);
+const conflictingFileName = ref("");
+let overwriteResolve: ((value: boolean) => void) | null = null;
+
+function promptOverwrite(fileName: string): Promise<boolean> {
+  conflictingFileName.value = fileName;
+  showOverwriteDialog.value = true;
+  return new Promise((resolve) => {
+    overwriteResolve = resolve;
+  });
+}
+
+function handleOverwriteChoice(choice: boolean) {
+  showOverwriteDialog.value = false;
+  if (overwriteResolve) {
+    overwriteResolve(choice);
+    overwriteResolve = null;
+  }
+}
+
+interface UploadItem {
+  name: string;
+  progress: number;
+}
+
 const snackbar = ref(false);
 const snackbarText = ref("");
 const snackbarColor = ref("success");
 const showUploadDialog = ref(false);
-const uploadProgress = ref<{ name: string; progress: number }[]>([]);
+const uploadProgress = ref<Array<{ name: string; progress: number }>>([]);
 
 const overallProgress = computed(() => {
   if (uploadProgress.value.length === 0) return 0;
@@ -579,37 +621,69 @@ function triggerPublicUpload() {
 
     const baseUrl = getBaseUrl();
     const uploadUrl = `${baseUrl}/api/public/shared/${shareId}/upload`;
-    const formData = new FormData();
 
-    filesArr.forEach((file) => {
-      formData.append("files", file);
-    });
+    let hasError = false;
+    let uploadedCount = 0;
 
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", uploadUrl);
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percent = Math.round((e.loaded / e.total) * 100);
-            uploadProgress.value.forEach(item => { item.progress = percent; });
+    for (let i = 0; i < filesArr.length; i++) {
+      const file = filesArr[i];
+      if (!file) continue;
+
+      const fileName = file.name;
+      const isDuplicate = items.value.some(
+        (iItem) => iItem.type !== 'folder' && iItem.name.toLowerCase() === fileName.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        showUploadDialog.value = false;
+        const shouldOverwrite = await promptOverwrite(fileName);
+        showUploadDialog.value = true;
+
+        if (!shouldOverwrite) {
+          const targetItem = uploadProgress.value[i];
+          if (targetItem) {
+            targetItem.progress = 100;
           }
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error("Gagal mengunggah"));
-        };
-        xhr.onerror = () => reject(new Error("Network error"));
-        xhr.send(formData);
-      });
+          continue;
+        }
+      }
 
-      showUploadDialog.value = false;
-      showToast(`${filesArr.length} file berhasil diunggah!`);
-      await fetchFolder(currentFolderId.value);
-    } catch (err) {
-      showUploadDialog.value = false;
-      showToast("Terjadi kesalahan saat mengunggah file.", "error");
+      const formData = new FormData();
+      if (currentFolderId.value) formData.append("folder_id", currentFolderId.value);
+      formData.append("files", file);
+      const currentItem = uploadProgress.value[i];
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", uploadUrl);
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && currentItem) {
+              currentItem.progress = Math.round((e.loaded / e.total) * 100);
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error("Gagal mengunggah"));
+          };
+          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.send(formData);
+        });
+        uploadedCount++;
+      } catch (err) {
+        hasError = true;
+        break;
+      }
     }
+
+    showUploadDialog.value = false;
+
+    if (hasError) {
+      showToast("Terjadi kesalahan saat mengunggah beberapa file.", "error");
+    } else {
+      showToast(`Berhasil mengunggah ${uploadedCount} file!`);
+    }
+    await fetchFolder(currentFolderId.value);
   };
 
   input.click();

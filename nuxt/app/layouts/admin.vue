@@ -1,116 +1,95 @@
 <template>
-  <v-app class="app-container-tech" :class="{ 'slide-out-right': isLoggingOut }">
-    <!-- Sidebar / Navigation Drawer Tech Style -->
-    <v-navigation-drawer
-      v-model="drawer"
-      :permanent="$vuetify.display.mdAndUp"
-      elevation="0"
-      width="250"
-      class="sidebar-tech"
-    >
-      <!-- Header Brand Tech Panel -->
-      <div class="sidebar-header px-4 py-4 d-flex align-center border-bottom-tech">
-        <div class="brand-badge-tech mr-3 d-flex align-center justify-center">
-          <v-icon color="white" size="16">mdi-server-network</v-icon>
+  <v-app class="app-container-vibrant" :class="{ 'slide-out-right': isLoggingOut }">
+    <!-- Sidebar / Navigation Drawer -->
+    <v-navigation-drawer v-model="drawer" :permanent="$vuetify.display.mdAndUp" elevation="0" width="260"
+      class="sidebar-vibrant border-right">
+      <!-- Header Brand -->
+      <div class="sidebar-header px-5 py-5 d-flex align-center">
+        <div class="brand-icon-box mr-3 shadow-sm">
+          <v-icon color="white" size="20">mdi-harddisk</v-icon>
         </div>
         <div>
-          <div class="text-caption font-weight-bold text-grey-darken-3 text-uppercase" style="letter-spacing: 1px;">EDPSBY-SYS</div>
-          <div class="text-subtitle-2 font-weight-black text-blue-darken-3" style="letter-spacing: 0.5px;">SECURE DRIVE</div>
+          <span class="text-subtitle-1 font-weight-bold text-blue-darken-4 tracking-wide">EDPSBY</span>
+          <span class="text-subtitle-1 font-weight-bold text-blue-lighten-1 tracking-wide">DRIVE</span>
+
         </div>
       </div>
 
-      <!-- Navigation Menu -->
-      <v-list nav class="px-2 pt-3 menu-list-tech" density="compact">
-        <v-list-item
-          to="/admin/files"
-          prepend-icon="mdi-folder-outline"
-          title="File Repository"
-          color="primary"
-          class="mb-1 py-2 px-3 font-weight-medium menu-item-tech"
-        />
+      <v-divider class="border-opacity-25 mx-4"></v-divider>
 
-        <!-- Storage Panel Widget -->
-        <div class="storage-panel-tech pa-3 mt-6 mx-1">
-          <div class="d-flex justify-space-between align-center mb-1">
-            <span class="text-caption font-weight-bold text-grey-darken-2" style="font-size: 10px !important;">QUOTA USAGE</span>
-            <span class="text-caption font-weight-bold text-primary" style="font-size: 11px;">{{ storagePercentage }}%</span>
+      <!-- Navigation Menu -->
+      <v-list nav class="px-3 pt-4 menu-list" density="comfortable">
+        <v-list-item to="/admin/files" prepend-icon="mdi-folder-multiple-outline" title="File Manager" color="white"
+          class="mb-2 py-3 px-4 font-weight-semibold menu-item rounded-xl" />
+
+        <!-- Storage Info Card (Colorful & Modern) -->
+        <div class="storage-card-vibrant pa-4 mt-8 mx-1 rounded-2xl elevation-0">
+          <div class="d-flex justify-space-between align-center mb-2">
+            <span class="text-subtitle-2 font-weight-bold text-grey-darken-4 d-flex align-center gap-1.5">
+              <v-icon class="mr-2" size="20" color="primary">mdi-cloud-outline</v-icon> Penyimpanan
+            </span>
+            <span class="text-caption font-weight-bold text-primary bg-white px-2 py-0.5 rounded-pill shadow-xs"
+              style="font-size: 13px !important;">
+              {{ storagePercentage }} %
+            </span>
           </div>
-          <v-progress-linear
-            :model-value="storagePercentage"
-            :color="storageColor"
-            rounded="0"
-            height="4"
-            class="bg-grey-lighten-3 mb-1.5"
-          ></v-progress-linear>
-          <div class="text-caption text-grey font-weight-medium" style="font-size: 10px !important;">
-            {{ formatBytes(userData.used_quota) }} / {{ formatBytes(userData.quota) }}
+          <v-progress-linear :model-value="storagePercentage" :color="storageColor" rounded="pill" height="8"
+            class="bg-blue-grey-lighten-5 mb-2.5"></v-progress-linear>
+          <div style="font-size: 11px" class="mt-2 text-body-2 text-grey-darken-4 font-weight-medium">
+            {{ formatBytes(userData.used_quota) }} <span class="text-grey">dari {{ formatBytes(userData.quota) }}</span>
           </div>
         </div>
       </v-list>
 
-      <!-- Footer Info -->
+      <!-- Copyright Ybs -->
       <template v-slot:append>
-        <div class="pa-3 text-center border-top-tech">
-          <div class="text-grey font-weight-medium" style="font-size: 9.5px; letter-spacing: 0.2px;">
-            EDP Department • @Ybs 2026
+        <div class="pa-4 text-center border-top bg-grey-lighten-5">
+          <div class="text-grey-darken-1 font-weight-medium text-caption"
+            style="font-size: 11px ; letter-spacing: 0.3px;">
+            Copyright © @Ybs - EDPSBY 2026
           </div>
         </div>
       </template>
     </v-navigation-drawer>
 
-    <!-- App Bar / Top Navbar Minimalis & Fungsional -->
-    <v-app-bar flat border="bottom" color="white" height="54" class="px-4 navbar-tech">
-      <v-app-bar-nav-icon
-        v-if="!$vuetify.display.mdAndUp"
-        @click="drawer = !drawer"
-        class="text-grey-darken-3"
-        density="compact"
-      />
-      
-      <!-- Server Status / User Info Bar -->
-      <div class="d-flex align-center gap-2 fade-in">
-        <div class="status-indicator"></div>
-        <span class="text-caption font-weight-bold text-grey-darken-3 text-uppercase" style="letter-spacing: 0.5px;">
-          Node: <span class="text-primary">{{ userData.username }}</span>
-        </span>
-        <span class="text-grey-lighten-1">|</span>
-        <span class="text-caption text-grey-darken-1 hidden-sm-and-down">{{ greeting }}</span>
+    <!-- App Bar / Top Navbar -->
+    <v-app-bar flat border="bottom" color="white" height="64" class="px-5 navbar-vibrant">
+      <v-app-bar-nav-icon v-if="!$vuetify.display.mdAndUp" @click="drawer = !drawer" class="text-grey-darken-3"
+        density="compact" />
+
+      <!-- Sapaan Waktu & Nama User -->
+      <div class="d-flex align-center text-body-1 text-grey-darken-3 font-weight-medium fade-in">
+        <span>{{ greeting }}, <strong class="text-primary font-weight-bold">{{ userData.username }}</strong> 👋</span>
       </div>
 
       <v-spacer />
 
-      <!-- User Action Profile Dropdown -->
+      <!-- User Logout Dropdown -->
       <v-menu location="bottom end" transition="slide-y-transition">
         <template v-slot:activator="{ props }">
-          <v-btn v-bind="props" variant="flat" class="profile-btn-tech px-2 py-1 text-none" height="34">
-            <v-avatar size="24" class="rounded-0 mr-2">
-              <v-img
-                :src="`https://ui-avatars.com/api/?name=${userData.username}&background=1e293b&color=fff&bold=true`"
-              />
+          <v-btn v-bind="props" variant="flat"
+            class="user-profile-btn text-none px-3 py-2 rounded-pill bg-blue-lighten-5 text-primary" height="44">
+            <v-avatar size="25" class="rounded-circle mr-2 bg-primary text-white font-weight-bold shadow-xs">
+              <span>{{ userData.username.charAt(0) }}</span>
             </v-avatar>
-            <span class="text-caption font-weight-bold text-grey-darken-3 mr-1">{{ userData.username }}</span>
-            <v-icon size="14" color="grey">mdi-chevron-down</v-icon>
+            <span style="font-size: 12px" class="text-body-2 font-weight-bold text-grey-darken-4 mr-1">{{
+              userData.username }}</span>
+            <v-icon size="18" color="grey-darken-2">mdi-chevron-down</v-icon>
           </v-btn>
         </template>
 
-        <v-card width="160" class="mt-1 rounded-0 elevation-3 pa-1 bg-white border-tech">
-          <v-list density="compact" nav class="pa-1 bg-transparent text-grey-darken-4">
-            <v-list-item
-              prepend-icon="mdi-power"
-              title="Terminate Session"
-              color="error"
-              rounded="0"
-              class="py-1 text-error font-weight-medium text-caption"
-              @click="executeLogout"
-            />
+        <v-card width="180" class="mt-2 rounded-xl elevation-4 pa-1 bg-white border">
+          <v-list density="compact" nav class="pa-0 bg-transparent">
+            <v-list-item prepend-icon="mdi-logout" title="Keluar" color="error" rounded="lg"
+              class="py-2 text-error font-weight-semibold text-body-2" @click="executeLogout" />
           </v-list>
         </v-card>
       </v-menu>
     </v-app-bar>
 
     <!-- Main Content Area -->
-    <v-main class="bg-tech-main" style="height: 100vh; max-height: 100vh; overflow: hidden;">
-      <v-container fluid class="pa-3 pa-md-4">
+    <v-main class="bg-main" style="height: 100vh; max-height: 100vh; overflow: hidden;">
+      <v-container fluid class="pa-4 pa-md-6">
         <slot />
       </v-container>
     </v-main>
@@ -132,6 +111,7 @@ const userData = ref({
   used_quota: 0,
 });
 
+// Sapaan waktu dinamis (Selamat Pagi / Siang / Sore / Malam)
 const greeting = computed(() => {
   const hour = new Date().getHours();
   if (hour < 11) return "Selamat Pagi";
@@ -177,14 +157,14 @@ function executeLogout() {
   isLoggingOut.value = true;
   setTimeout(() => {
     router.push("/login");
-  }, 400);
+  }, 350);
 }
 </script>
 
 <style scoped>
-.app-container-tech {
+.app-container-vibrant {
   background-color: #f8fafc;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease-in-out;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .slide-out-right {
@@ -192,68 +172,74 @@ function executeLogout() {
   opacity: 0;
 }
 
-.bg-tech-main {
-  background-color: #f8fafc !important;
+.bg-main {
+  background-color: #f4f6f9 !important;
 }
 
-.sidebar-tech {
-  background: #ffffff !important;
+.sidebar-vibrant {
+  background: linear-gradient(180deg, #ffffff 0%, #fdfdff 100%) !important;
   border-right: 1px solid #e2e8f0 !important;
 }
 
-.border-bottom-tech {
-  border-bottom: 1px solid #e2e8f0 !important;
+.brand-icon-box {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
 }
 
-.border-top-tech {
+.border-top {
   border-top: 1px solid #e2e8f0 !important;
 }
 
-.border-tech {
+.border {
   border: 1px solid #e2e8f0 !important;
 }
 
-.brand-badge-tech {
-  width: 28px;
-  height: 28px;
-  background: #1e293b;
-  border-radius: 4px;
+.menu-item {
+  border-radius: 12px !important;
+  transition: all 0.2s ease;
+  font-size: 14px !important;
 }
 
-.menu-item-tech {
-  border-radius: 4px !important;
-  transition: all 0.15s ease-in-out !important;
-}
-.menu-item-tech:hover {
-  background: #f1f5f9 !important;
+.menu-item:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #2563eb !important;
 }
 
-.storage-panel-tech {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
+.storage-card-vibrant {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+  border: 1px solid rgba(37, 99, 235, 0.15);
 }
 
-.navbar-tech {
+.navbar-vibrant {
   border-bottom: 1px solid #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px);
 }
 
-.status-indicator {
-  width: 7px;
-  height: 7px;
-  background-color: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+.user-profile-btn {
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  transition: all 0.2s ease;
+}
+
+.user-profile-btn:hover {
+  background: rgba(37, 99, 235, 0.12) !important;
 }
 
 .fade-in {
-  animation: fadeIn 0.4s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -261,20 +247,10 @@ function executeLogout() {
 }
 
 .v-list-item--active {
-  background: #eff6ff !important;
-  color: #2563eb !important;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: white !important;
   font-weight: 600 !important;
-  border-left: 2px solid #2563eb;
-  border-radius: 0 4px 4px 0 !important;
-}
-
-.profile-btn-tech {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-.profile-btn-tech:hover {
-  background: #f1f5f9;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  border-radius: 12px !important;
 }
 </style>
