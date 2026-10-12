@@ -635,14 +635,54 @@ async function saveShareSettings() {
   }
 }
 
+// async function shareItems(items: any[]) {
+//   const item = items[0];
+//   if (!item) return;
+//   try {
+//     const endpoint = item.type === "folder" ? `/folders/${item.id}/share` : `/files/${item.id}/share`;
+//     const res = (await $api(endpoint, { method: "POST" })) as any;
+//     if (res.link) {
+//       if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(res.link);
+//       snackbarColor.value = "success";
+//       snackbarText.value = "Link berhasil disalin!";
+//       snackbar.value = true;
+//       fetchFolderContent(currentFolderId.value);
+//     }
+//   } catch (err) {
+//     snackbarColor.value = "error";
+//     snackbarText.value = "Gagal membagikan.";
+//     snackbar.value = true;
+//   }
+// }
+
 async function shareItems(items: any[]) {
   const item = items[0];
   if (!item) return;
   try {
     const endpoint = item.type === "folder" ? `/folders/${item.id}/share` : `/files/${item.id}/share`;
     const res = (await $api(endpoint, { method: "POST" })) as any;
-    if (res.link) {
-      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(res.link);
+    
+    // Pastikan link menggunakan host server yang aktif (bukan hardcode localhost)
+    let shareLink = res.link;
+    if (shareLink) {
+      // Jika dari backend mengembalikan path relatif atau localhost, sesuaikan dengan host browser saat ini
+      try {
+        const urlObj = new URL(shareLink);
+        // Ganti hostname & port backend dengan host aktif saat ini (misal IP server :8090)
+        urlObj.protocol = window.location.protocol;
+        urlObj.host = window.location.host; 
+        shareLink = urlObj.toString();
+      } catch (e) {
+        // Jika res.link berupa path relatif (misal: /sf/xyz atau /s/xyz)
+        const path = shareLink.startsWith('/') ? shareLink : `/${shareLink}`;
+        shareLink = `${window.location.protocol}//${window.location.host}${path}`;
+      }
+    }
+
+    if (shareLink) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareLink);
+      }
       snackbarColor.value = "success";
       snackbarText.value = "Link berhasil disalin!";
       snackbar.value = true;
@@ -810,8 +850,10 @@ function uploadFiles(mode = 'file') {
         const shouldOverwrite = await promptOverwrite(fileName);
         showUploadDialog.value = true;
 
-        if (!shouldOverwrite) {
-          if (uploadProgress.value[i]) uploadProgress.value[i].progress = 100;
+       if (!shouldOverwrite) {
+          if (uploadProgress.value[i]) {
+            uploadProgress.value[i]!.progress = 100;
+          }
           continue; 
         }
       }
