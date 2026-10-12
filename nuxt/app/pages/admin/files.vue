@@ -662,29 +662,38 @@ async function shareItems(items: any[]) {
     const endpoint = item.type === "folder" ? `/folders/${item.id}/share` : `/files/${item.id}/share`;
     const res = (await $api(endpoint, { method: "POST" })) as any;
     
-    // Pastikan link menggunakan host server yang aktif (bukan hardcode localhost)
     let shareLink = res.link;
     if (shareLink) {
-      // Jika dari backend mengembalikan path relatif atau localhost, sesuaikan dengan host browser saat ini
       try {
         const urlObj = new URL(shareLink);
-        // Ganti hostname & port backend dengan host aktif saat ini (misal IP server :8090)
         urlObj.protocol = window.location.protocol;
         urlObj.host = window.location.host; 
         shareLink = urlObj.toString();
       } catch (e) {
-        // Jika res.link berupa path relatif (misal: /sf/xyz atau /s/xyz)
         const path = shareLink.startsWith('/') ? shareLink : `/${shareLink}`;
         shareLink = `${window.location.protocol}//${window.location.host}${path}`;
       }
-    }
 
-    if (shareLink) {
+      // Metode salin aman dengan fallback (mendukung HTTP/non-secure context)
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(shareLink);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareLink;
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          console.error('Gagal menyalin:', err);
+        }
+        document.body.removeChild(textArea);
       }
+
       snackbarColor.value = "success";
-      snackbarText.value = "Link berhasil disalin!";
+      snackbarText.value = "Link berhasil disalin: " + shareLink;
       snackbar.value = true;
       fetchFolderContent(currentFolderId.value);
     }
