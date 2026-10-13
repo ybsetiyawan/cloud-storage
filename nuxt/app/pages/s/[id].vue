@@ -357,13 +357,13 @@
         <v-divider class="border-opacity-25"></v-divider>
         <v-card-actions class="px-6 py-3">
           <v-spacer />
-          <span class="text-caption text-grey">Mohon jangan tutup halaman ini...</span>
+          <span class="text-caption text-grey">Mohon jangan menutup halaman ini...</span>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Toast / Snackbar Notifikasi (Posisi: Top Right) -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" rounded="pill" location="top right" class="mt-16 mr-4">
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="4000" rounded="pill" location="top right" class="mt-16 mr-4">
       <div class="d-flex align-center font-weight-medium">
         <v-icon start size="20" class="mr-2">
           {{ snackbarColor === 'success' ? 'mdi-check-circle-outline' : 'mdi-alert-circle-outline' }}
@@ -526,7 +526,8 @@ async function loadThumbnails() {
   for (const imgItem of imageFiles) {
     if (!thumbnailMap.value[imgItem.id]) {
       try {
-        const endpoint = `${baseUrl}/api/public/download-file/${imgItem.id}`;
+        // 🔥 Gunakan endpoint preview-file agar tidak terhalang pengaturan allow_download
+        const endpoint = `${baseUrl}/api/public/preview-file/${imgItem.id}`;
         const res = await $fetch<Blob>(endpoint, { responseType: "blob" });
         thumbnailMap.value[imgItem.id] = window.URL.createObjectURL(res);
       } catch (e) {
@@ -542,7 +543,8 @@ async function openPreview(item: any) {
   rotationAngle.value = 0;
   const baseUrl = getBaseUrl();
   try {
-    const endpoint = `${baseUrl}/api/public/download-file/${item.id}`;
+    // 🔥 Gunakan endpoint preview-file agar tidak terhalang pengaturan allow_download
+    const endpoint = `${baseUrl}/api/public/preview-file/${item.id}`;
     const res = await $fetch<Blob>(endpoint, { responseType: "blob" });
     previewUrl.value = window.URL.createObjectURL(res);
     showPreviewDialog.value = true;
@@ -623,6 +625,7 @@ function triggerPublicUpload() {
     const uploadUrl = `${baseUrl}/api/public/shared/${shareId}/upload`;
 
     let hasError = false;
+    let errorMessage = "Terjadi kesalahan saat mengunggah.";
     let uploadedCount = 0;
 
     for (let i = 0; i < filesArr.length; i++) {
@@ -663,15 +666,24 @@ function triggerPublicUpload() {
             }
           };
           xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) resolve();
-            else reject(new Error("Gagal mengunggah"));
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              try {
+                const resJson = JSON.parse(xhr.responseText);
+                reject(new Error(resJson.error || "Gagal mengunggah"));
+              } catch (e) {
+                reject(new Error("Gagal mengunggah berkas"));
+              }
+            }
           };
-          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.onerror = () => reject(new Error("Koneksi jaringan gagal"));
           xhr.send(formData);
         });
         uploadedCount++;
-      } catch (err) {
+      } catch (err: any) {
         hasError = true;
+        errorMessage = err.message;
         break;
       }
     }
@@ -679,7 +691,7 @@ function triggerPublicUpload() {
     showUploadDialog.value = false;
 
     if (hasError) {
-      showToast("Terjadi kesalahan saat mengunggah beberapa file.", "error");
+      showToast(errorMessage, "error");
     } else {
       showToast(`Berhasil mengunggah ${uploadedCount} file!`);
     }
@@ -773,6 +785,7 @@ function getIconConfig(item: any) {
     case "js": case "ts": case "html": case "css": case "json": case "php": return { icon: "mdi-code-json", class: "icon-code" };
     case "mp4": case "mkv": case "avi": case "mov": return { icon: "mdi-video", class: "icon-video" };
     case "mp3": case "wav": case "ogg": return { icon: "mdi-music", class: "icon-audio" };
+    case "exe": return { icon: "mdi-desktop-classic", class: "icon-word" };
     default: return { icon: "mdi-file-document-outline", class: "file-icon-bg-light" };
   }
 }

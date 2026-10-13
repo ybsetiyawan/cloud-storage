@@ -11,7 +11,6 @@
         <div>
           <span class="text-subtitle-1 font-weight-bold text-blue-darken-4 tracking-wide">EDPSBY</span>
           <span class="text-subtitle-1 font-weight-bold text-blue-lighten-1 tracking-wide">DRIVE</span>
-
         </div>
       </div>
 
@@ -22,8 +21,18 @@
         <v-list-item to="/admin/files" prepend-icon="mdi-folder-multiple-outline" title="File Manager" color="white"
           class="mb-2 py-3 px-4 font-weight-semibold menu-item rounded-xl" />
 
+        <!-- Menu Manajemen User (Hanya muncul jika role admin) -->
+        <v-list-item 
+          v-if="isAdmin" 
+          to="/admin/users" 
+          prepend-icon="mdi-account-group-outline" 
+          title="Manajemen User" 
+          color="white"
+          class="mb-2 py-3 px-4 font-weight-semibold menu-item rounded-xl" 
+        />
+
         <!-- Storage Info Card (Colorful & Modern) -->
-        <div class="storage-card-vibrant pa-4 mt-8 mx-1 rounded-2xl elevation-0">
+        <div class="storage-card-vibrant pa-4 mt-6 mx-1 rounded-2xl elevation-0">
           <div class="d-flex justify-space-between align-center mb-2">
             <span class="text-subtitle-2 font-weight-bold text-grey-darken-4 d-flex align-center gap-1.5">
               <v-icon class="mr-2" size="20" color="primary">mdi-cloud-outline</v-icon> Penyimpanan
@@ -70,7 +79,7 @@
           <v-btn v-bind="props" variant="flat"
             class="user-profile-btn text-none px-3 py-2 rounded-pill bg-blue-lighten-5 text-primary" height="44">
             <v-avatar size="25" class="rounded-circle mr-2 bg-primary text-white font-weight-bold shadow-xs">
-              <span>{{ userData.username.charAt(0) }}</span>
+              <span>{{ userData.username ? userData.username.charAt(0) : 'A' }}</span>
             </v-avatar>
             <span style="font-size: 12px" class="text-body-2 font-weight-bold text-grey-darken-4 mr-1">{{
               userData.username }}</span>
@@ -97,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 
 const drawer = ref(true);
@@ -110,6 +119,21 @@ const userData = ref({
   quota: 0,
   used_quota: 0,
 });
+
+const loadUserData = () => {
+  const savedUser = localStorage.getItem("user_data");
+  if (savedUser) {
+    try {
+      const parsed = JSON.parse(savedUser);
+      userData.value = parsed;
+      isAdmin.value = parsed.role === 'admin';
+    } catch (e) {
+      console.error("Gagal load data user");
+    }
+  }
+};
+
+const isAdmin = ref(false);
 
 // Sapaan waktu dinamis (Selamat Pagi / Siang / Sore / Malam)
 const greeting = computed(() => {
@@ -142,15 +166,25 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 onMounted(() => {
+  loadUserData();
+  window.addEventListener("storage-updated", loadUserData);
   const savedUser = localStorage.getItem("user_data");
   if (savedUser) {
     try {
-      userData.value = JSON.parse(savedUser);
+      const parsed = JSON.parse(savedUser);
+      userData.value = parsed;
+      isAdmin.value = parsed.role === 'admin';
     } catch (e) {
       console.error("Gagal load data user");
     }
   }
 });
+
+onUnmounted(() => {
+  window.removeEventListener("storage-updated", loadUserData);
+});
+
+
 
 function executeLogout() {
   localStorage.clear();

@@ -368,6 +368,8 @@ import { ref, computed, onMounted } from "vue";
 import { useNuxtApp } from "#imports";
 
 const { $api } = useNuxtApp();
+import { useRoute } from "vue-router";
+const route = useRoute();
 
 const searchQuery = ref("");
 const loading = ref(true);
@@ -551,13 +553,15 @@ function getIconConfig(item: any) {
     case "ppt": case "pptx": return { icon: "mdi-file-powerpoint", class: "icon-ppt-clean" };
     case "jpg": case "jpeg": case "png": case "gif": case "svg": case "webp": return { icon: "mdi-file-image", class: "icon-image-clean" };
     case "zip": case "rar": case "7z": case "tar": case "gz": return { icon: "mdi-zip-box", class: "icon-zip-clean" };
-    case "exe": case "msi": case "apk": case "bat": case "sh": case "app":
-      return { icon: "mdi-application-outline", class: "icon-app-clean" };
+    case "exe": case "msi": case "bat": case "sh": case "app":
+      return { icon: "mdi-desktop-classic", class: "icon-app-clean" };
     case "js": case "ts": case "vue": case "json": case "py": case "php": case "html": case "css": case "sql":
       return { icon: "mdi-code-braces", class: "icon-code-clean" };
     case "mp4": case "mkv": case "avi": case "mov": return { icon: "mdi-file-video", class: "icon-video-clean" };
     case "mp3": case "wav": case "ogg": return { icon: "mdi-file-music", class: "icon-audio-clean" };
     case "txt": case "log": case "md": return { icon: "mdi-file-document-outline", class: "icon-txt-clean" };
+    case "db": case "md": return { icon: "mdi-database", class: "icon-txt-clean" };
+    case "apk": return { icon: "mdi-android", class: "icon-excel-clean" };
     default: return { icon: "mdi-file-outline", class: "icon-default-clean" };
   }
 }
@@ -635,25 +639,6 @@ async function saveShareSettings() {
   }
 }
 
-// async function shareItems(items: any[]) {
-//   const item = items[0];
-//   if (!item) return;
-//   try {
-//     const endpoint = item.type === "folder" ? `/folders/${item.id}/share` : `/files/${item.id}/share`;
-//     const res = (await $api(endpoint, { method: "POST" })) as any;
-//     if (res.link) {
-//       if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(res.link);
-//       snackbarColor.value = "success";
-//       snackbarText.value = "Link berhasil disalin!";
-//       snackbar.value = true;
-//       fetchFolderContent(currentFolderId.value);
-//     }
-//   } catch (err) {
-//     snackbarColor.value = "error";
-//     snackbarText.value = "Gagal membagikan.";
-//     snackbar.value = true;
-//   }
-// }
 
 async function shareItems(items: any[]) {
   const item = items[0];
@@ -674,7 +659,6 @@ async function shareItems(items: any[]) {
         shareLink = `${window.location.protocol}//${window.location.host}${path}`;
       }
 
-      // Metode salin aman dengan fallback (mendukung HTTP/non-secure context)
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(shareLink);
       } else {
@@ -710,6 +694,25 @@ function confirmDelete(items: any[]) {
   showDeleteDialog.value = true;
 }
 
+// Fungsi untuk memperbarui kuota secara real-time di sidebar layout admin
+async function refreshUserQuota() {
+  try {
+    const userRes = (await $api("/auth/me")) as any;
+    if (userRes) {
+      const savedUser = localStorage.getItem("user_data");
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        parsed.used_quota = userRes.used_quota;
+        parsed.quota = userRes.quota;
+        localStorage.setItem("user_data", JSON.stringify(parsed));
+        window.dispatchEvent(new Event("storage-updated"));
+      }
+    }
+  } catch (err) {
+    console.error("Gagal memperbarui kuota user:", err);
+  }
+}
+
 async function executeDelete() {
   try {
     await Promise.all(
@@ -720,6 +723,7 @@ async function executeDelete() {
     showDeleteDialog.value = false;
     clearSelection();
     fetchFolderContent(currentFolderId.value);
+    await refreshUserQuota(); // 👈 Update kuota di sidebar setelah hapus file/folder
     snackbarColor.value = "success";
     snackbarText.value = "Item berhasil dihapus.";
     snackbar.value = true;
@@ -912,6 +916,7 @@ function uploadFiles(mode = 'file') {
       snackbar.value = true;
     } else {
       fetchFolderContent(currentFolderId.value);
+      await refreshUserQuota(); // 👈 Update kuota di sidebar setelah sukses upload file/folder
       snackbarColor.value = "success";
       snackbarText.value = mode === 'folder' 
         ? `Berhasil mengunggah folder (${filesArr.length} berkas)` 
@@ -922,7 +927,16 @@ function uploadFiles(mode = 'file') {
   input.click();
 }
 
-onMounted(() => fetchFolderContent());
+onMounted(() => {
+  if (route.query.error === "unauthorized") {
+    snackbarColor.value = "error";
+    snackbarText.value = "Akses ditolak! Halaman tersebut khusus untuk Administrator.";
+    snackbar.value = true;
+    window.history.replaceState({}, "", "/admin/files");
+  }
+
+  fetchFolderContent();
+});
 </script>
 
 <style scoped>
