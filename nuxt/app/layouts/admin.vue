@@ -31,6 +31,15 @@
           class="mb-2 py-3 px-4 font-weight-semibold menu-item rounded-xl" 
         />
 
+         <v-list-item 
+          v-if="isAdmin" 
+          to="/admin/activities" 
+          prepend-icon="mdi-history" 
+          title="Log Aktifitas" 
+          color="white"
+          class="mb-2 py-3 px-4 font-weight-semibold menu-item rounded-xl" 
+        />
+
         <!-- Storage Info Card (Colorful & Modern) -->
         <div class="storage-card-vibrant pa-4 mt-6 mx-1 rounded-2xl elevation-0">
           <div class="d-flex justify-space-between align-center mb-2">

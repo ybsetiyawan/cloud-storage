@@ -5,6 +5,8 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 const archiver = require('archiver');
+const { logActivity } = require("../utils/logger");
+
 
 // // CREATE FOLDER
 // router.post("/", auth, async (req, res) => {
@@ -374,10 +376,75 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// router.get("/:id/download", auth, async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const folderId = req.params.id;
+
+//     // 1. Ambil info folder utama
+//     const folderRes = await pool.query(
+//       `SELECT name FROM folders WHERE id=$1 AND user_id=$2`,
+//       [folderId, userId]
+//     );
+//     if (folderRes.rowCount === 0) return res.status(404).json({ error: "Folder not found" });
+    
+//     const folderName = folderRes.rows[0].name;
+
+//     // 2. Set header agar browser mengenali ini sebagai file ZIP
+//     res.setHeader('Content-Type', 'application/zip');
+//     res.setHeader('Content-Disposition', `attachment; filename="${folderName}.zip"`);
+
+//     const archive = archiver('zip', { zlib: { level: 9 } });
+//     archive.pipe(res);
+
+//     // 3. Fungsi Rekursif untuk memasukkan file ke ZIP
+//     async function addFolderToZip(currentFolderId, zipPath) {
+//       // Ambil semua file di folder ini
+//       const files = await pool.query(
+//         `SELECT path, original_name FROM files WHERE folder_id=$1 AND user_id=$2`,
+//         [currentFolderId, userId]
+//       );
+//       for (const file of files.rows) {
+//         if (fs.existsSync(file.path)) {
+//           archive.file(file.path, { name: path.join(zipPath, file.original_name) });
+//         }
+//       }
+
+//       // Ambil semua subfolder
+//       const subfolders = await pool.query(
+//         `SELECT id, name FROM folders WHERE parent_id=$1 AND user_id=$2`,
+//         [currentFolderId, userId]
+//       );
+//       for (const sub of subfolders.rows) {
+//         await addFolderToZip(sub.id, path.join(zipPath, sub.name));
+//       }
+//     }
+
+//     // Mulai proses pengarsipan
+//     await addFolderToZip(folderId, "");
+    
+//     archive.finalize();
+    
+
+//   } catch (err) {
+//     console.error(err);
+//     if (!res.headersSent) res.status(500).json({ error: "Download folder failed" });
+//   }
+
+
+  
+// });
+
+/* =========================
+   DOWNLOAD FOLDER AS ZIP
+========================= */
 router.get("/:id/download", auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const folderId = req.params.id;
+
+    // 🔥 Ambil Alamat IP Klien
+    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
 
     // 1. Ambil info folder utama
     const folderRes = await pool.query(
@@ -387,10 +454,14 @@ router.get("/:id/download", auth, async (req, res) => {
     if (folderRes.rowCount === 0) return res.status(404).json({ error: "Folder not found" });
     
     const folderName = folderRes.rows[0].name;
+    const zipFileName = `${folderName}.zip`;
+
+    // 🔥 Catat aktivitas unduh folder ke log audit trail
+    await logActivity(userId, "DOWNLOAD_FOLDER", null, zipFileName, clientIp);
 
     // 2. Set header agar browser mengenali ini sebagai file ZIP
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="${folderName}.zip"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
 
     const archive = archiver('zip', { zlib: { level: 9 } });
     archive.pipe(res);
@@ -424,12 +495,9 @@ router.get("/:id/download", auth, async (req, res) => {
     archive.finalize();
 
   } catch (err) {
-    console.error(err);
+    console.error("Download Folder Error:", err);
     if (!res.headersSent) res.status(500).json({ error: "Download folder failed" });
   }
-
-
-  
 });
 
 // UPDATE PUBLIC SHARE SETTINGS (allow_upload & allowed_extensions)

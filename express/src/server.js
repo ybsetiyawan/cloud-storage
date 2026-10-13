@@ -7,11 +7,13 @@ const archiver = require("archiver")
 const multer = require("multer") // Menggunakan multer yang sudah ada di proyek Anda
 const { nanoid } = require("nanoid")
 const pool = require("./db") 
+const { logActivity } = require("./utils/logger"); // Sesuaikan path foldernya
 
 // Import Routes
 const authRoutes = require("./routes/auth")
 const fileRoutes = require("./routes/files")
 const folderRoutes = require("./routes/folders")
+const activityRoutes = require("./routes/activities");
 
 const app = express()
 
@@ -39,6 +41,7 @@ const upload = multer({
 app.use("/api/auth", authRoutes)
 app.use("/api/files", fileRoutes)
 app.use("/api/folders", folderRoutes)
+app.use("/api/activities", activityRoutes);
 
 
 /* ==========================================================
@@ -97,9 +100,56 @@ app.get("/api/public/share-info/:shareId", async (req, res) => {
 /* ==========================================================
     🔥 PUBLIC DOWNLOAD FOLDER (ZIP) - REKURSIF
    ========================================================== */
+// app.get("/sf/:shareId", async (req, res) => {
+//   try {
+//     const { shareId } = req.params;
+//     const folderResult = await pool.query(
+//       `SELECT * FROM folders WHERE share_id=$1 AND is_public=true`,
+//       [shareId]
+//     );
+
+//     const folder = folderResult.rows[0];
+//     if (!folder) return res.status(404).send("Folder not found");
+
+//     res.setHeader("Content-Type", "application/zip");
+//     res.setHeader("Content-Disposition", `attachment; filename="${folder.name}.zip"`);
+
+//     const archive = archiver("zip", { zlib: { level: 9 } });
+//     archive.pipe(res);
+
+//     async function addFolderToZip(currentFolderId, zipPath) {
+//       const files = await pool.query(`SELECT * FROM files WHERE folder_id=$1`, [currentFolderId]);
+//       for (const file of files.rows) {
+//         const filePath = path.resolve(file.path);
+//         if (fs.existsSync(filePath)) {
+//           archive.file(filePath, { name: path.join(zipPath, file.original_name) });
+//         }
+//       }
+
+//       const subfolders = await pool.query(`SELECT * FROM folders WHERE parent_id=$1`, [currentFolderId]);
+//       for (const sub of subfolders.rows) {
+//         await addFolderToZip(sub.id, path.join(zipPath, sub.name));
+//       }
+//     }
+
+//     await addFolderToZip(folder.id, "");
+//     await archive.finalize();
+//   } catch (err) {
+//     console.error(err);
+//     if (!res.headersSent) res.status(500).send("Error generating ZIP");
+//   }
+// });
+
+/* ==========================================================
+    🔥 PUBLIC DOWNLOAD FOLDER (ZIP) - REKURSIF
+   ========================================================== */
 app.get("/sf/:shareId", async (req, res) => {
   try {
     const { shareId } = req.params;
+    
+    // 🔥 Ambil Alamat IP Publik Klien
+    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+
     const folderResult = await pool.query(
       `SELECT * FROM folders WHERE share_id=$1 AND is_public=true`,
       [shareId]
@@ -108,8 +158,13 @@ app.get("/sf/:shareId", async (req, res) => {
     const folder = folderResult.rows[0];
     if (!folder) return res.status(404).send("Folder not found");
 
+    const zipFileName = `${folder.name}.zip`;
+
+    // 🔥 Catat log aktivitas unduh folder publik ke audit trail
+    await logActivity(null, "DOWNLOAD_FOLDER", null, zipFileName, clientIp);
+
     res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", `attachment; filename="${folder.name}.zip"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${zipFileName}"`);
 
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.pipe(res);
@@ -132,11 +187,10 @@ app.get("/sf/:shareId", async (req, res) => {
     await addFolderToZip(folder.id, "");
     await archive.finalize();
   } catch (err) {
-    console.error(err);
+    console.error("SF DOWNLOAD ERROR:", err);
     if (!res.headersSent) res.status(500).send("Error generating ZIP");
   }
 });
-
 
 /* ==========================================================
    🔥 DOWNLOAD SUBFOLDER BY ID (HANYA ISI FOLDER TERSEBUT)
@@ -219,9 +273,70 @@ app.get("/api/public/folder-content/:id", async (req, res) => {
 
 
 
+// app.get("/api/public/download-file/:fileId", async (req, res) => {
+//   try {
+//     const { fileId } = req.params;
+
+//     const result = await pool.query(
+//       `
+//       WITH RECURSIVE folder_tree AS (
+//         SELECT id, parent_id, is_public, allow_download
+//         FROM folders
+//         WHERE id = (SELECT folder_id FROM files WHERE id = $1)
+
+//         UNION ALL
+
+//         SELECT f.id, f.parent_id, f.is_public, f.allow_download
+//         FROM folders f
+//         INNER JOIN folder_tree ft ON ft.parent_id = f.id
+//       )
+//       SELECT 
+//         f.*, 
+//         EXISTS (
+//           SELECT 1 FROM folder_tree WHERE is_public = true
+//         ) as is_allowed,
+//         (
+//           SELECT allow_download FROM folder_tree ORDER BY id LIMIT 1
+//         ) as folder_allow_download
+//       FROM files f
+//       WHERE f.id = $1
+//       `,
+//       [fileId]
+//     );
+
+//     const file = result.rows[0];
+//     if (!file) return res.status(404).send("File not found");
+
+//     // Cek akses publik folder
+//     if (!file.is_allowed && !file.is_public) {
+//       return res.status(403).send("Unauthorized access");
+//     }
+
+//     // 🔥 VALIDASI: Cek apakah folder mengizinkan download (jika kolom false, tolak pengunduhan)
+//     if (file.folder_allow_download === false) {
+//       return res.status(403).send("Pengunduhan file dinonaktifkan untuk folder ini");
+//     }
+
+//     const filePath = path.resolve(file.path);
+//     if (!fs.existsSync(filePath)) {
+//       return res.status(404).send("File missing on disk");
+//     }
+
+//     res.setHeader("Content-Type", file.mime_type);
+//     res.setHeader("Content-Disposition", `inline; filename="${file.original_name}"`);
+//     fs.createReadStream(filePath).pipe(res);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Internal server error");
+//   }
+// });
+
 app.get("/api/public/download-file/:fileId", async (req, res) => {
   try {
     const { fileId } = req.params;
+
+    // 🔥 Ambil Alamat IP Publik Klien
+    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
 
     const result = await pool.query(
       `
@@ -258,7 +373,7 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
       return res.status(403).send("Unauthorized access");
     }
 
-    // 🔥 VALIDASI: Cek apakah folder mengizinkan download (jika kolom false, tolak pengunduhan)
+    // 🔥 VALIDASI: Cek apakah folder mengizinkan download
     if (file.folder_allow_download === false) {
       return res.status(403).send("Pengunduhan file dinonaktifkan untuk folder ini");
     }
@@ -267,6 +382,9 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
     if (!fs.existsSync(filePath)) {
       return res.status(404).send("File missing on disk");
     }
+
+    // 🔥 Catat log aktivitas unduh file publik (tercatat sebagai anonymous)
+    await logActivity(null, "DOWNLOAD_FILE", file.id, file.original_name, clientIp);
 
     res.setHeader("Content-Type", file.mime_type);
     res.setHeader("Content-Disposition", `inline; filename="${file.original_name}"`);
@@ -277,14 +395,16 @@ app.get("/api/public/download-file/:fileId", async (req, res) => {
   }
 });
 
-
 /* ==========================================================
     🔥 PUBLIC UPLOAD FILE KE FOLDER YANG DI-SHARE (MENGGUNAKAN MULTER)
    ========================================================== */
 app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (req, res) => {
   try {
     const { token } = req.params;
-    const folderIdFromBody = req.body.folder_id || null; // Dukungan jika ada subfolder publik
+    const folderIdFromBody = req.body.folder_id || null; 
+    
+    // 🔥 Ambil Alamat IP Publik yang mengunggah
+    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
 
     // 1. Cek folder berdasarkan share_id / token dan pastikan publik
     const folderRes = await pool.query(
@@ -311,7 +431,7 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
       return res.status(400).json({ error: "Tidak ada file yang diunggah" });
     }
 
-    // 🔥 4. AMBIL DATA KUOTA PEMILIK FOLDER (USER)
+    // 4. AMBIL DATA KUOTA PEMILIK FOLDER
     const userRes = await pool.query(
       `SELECT quota, used_quota FROM users WHERE id = $1`,
       [folder.user_id]
@@ -320,10 +440,9 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
     const ownerQuota = parseInt(owner.quota) || 0;
     let ownerUsed = parseInt(owner.used_quota) || 0;
 
-    // Hitung total ukuran file baru yang masuk sekaligus
     const totalIncomingSize = req.files.reduce((acc, f) => acc + f.size, 0);
 
-    // 🔥 5. CEK APAKAH TOTALNYA MELEBIHI BATAS KUOTA PEMILIK
+    // 5. CEK APAKAH TOTALNYA MELEBIHI BATAS KUOTA PEMILIK
     if (ownerQuota > 0 && (ownerUsed + totalIncomingSize) > ownerQuota) {
       req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
       return res.status(400).json({ 
@@ -331,13 +450,13 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
       });
     }
 
-    let netSizeDifference = 0; // Menghitung selisih kuota jika ada overwrite
+    let netSizeDifference = 0; 
 
     for (const file of req.files) {
       const originalName = file.originalname;
       const fileExtension = originalName.split(".").pop().toLowerCase();
 
-      // 6. Validasi ekstensi file jika dibatasi (allowed_extensions)
+      // 6. Validasi ekstensi file
       if (folder.allowed_extensions) {
         const allowedList = folder.allowed_extensions
           .split(",")
@@ -346,12 +465,11 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
         if (!allowedList.includes(fileExtension)) {
           req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
           return res.status(400).json({ 
-            error: `Ekstensi .${fileExtension} pada file "${originalName}" tidak diizinkan. Ekstensi valid: ${folder.allowed_extensions}` 
+            error: `Ekstensi .${fileExtension} pada file "${originalName}" tidak diizinkan.` 
           });
         }
       }
 
-      // Cek apakah file dengan nama yang sama sudah ada di folder tersebut (Case-insensitive)
       const existingFile = await pool.query(
         `SELECT id, path, size FROM files 
          WHERE folder_id = $1 AND LOWER(original_name) = LOWER($2)`,
@@ -361,7 +479,6 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
       const fileId = nanoid(16);
       const ext = path.extname(originalName);
       
-      // Catatan: Anda menggunakan path.join(__dirname, "uploads") atau buildPath, sesuaikan dengan helper storage Anda
       const uploadDir = path.join(__dirname, "uploads");
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -372,27 +489,23 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
       const fileShareId = nanoid(10);
 
       if (existingFile.rowCount > 0) {
-        // --- JIKA SUDAH ADA: TIMPA (OVERWRITE) ---
+        // --- OVERWRITE ---
         const oldFile = existingFile.rows[0];
         const oldSize = parseInt(oldFile.size) || 0;
 
-        // Validasi tambahan jika selisih overwrite membuat kuota jebol
         if (ownerQuota > 0 && (ownerUsed + netSizeDifference - oldSize + fileSize) > ownerQuota) {
           if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-          continue; // Lewati file ini jika kuota tidak cukup
+          continue; 
         }
 
-        // Hapus file fisik lama di storage
         if (oldFile.path && fs.existsSync(oldFile.path)) {
           fs.unlinkSync(oldFile.path);
         }
 
-        // Pindahkan file baru dari temp ke storage
         if (fs.existsSync(file.path)) {
           fs.renameSync(file.path, targetPath);
         }
 
-        // Update data file lama di database
         await pool.query(
           `UPDATE files 
            SET stored_name = $1, path = $2, size = $3, mime_type = $4, created_at = NOW() 
@@ -402,8 +515,11 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
 
         netSizeDifference += (fileSize - oldSize);
 
+        // 🔥 Catat log aktivitas Overwrite publik (atas nama pemilik folder atau log khusus)
+        await logActivity(null, "OVERWRITE_FILE", oldFile.id, originalName, clientIp);
+
       } else {
-        // --- JIKA BELUM ADA: INSERT BARU ---
+        // --- INSERT BARU ---
         if (fs.existsSync(file.path)) {
           fs.renameSync(file.path, targetPath);
         }
@@ -415,10 +531,13 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
         );
 
         netSizeDifference += fileSize;
+
+        // 🔥 Catat log aktivitas Upload publik ke database
+        await logActivity(null, "UPLOAD_FILE", fileId, originalName, clientIp);
       }
     }
 
-    // 7. Update total kuota terpakai pemilik folder (users)
+    // 7. Update total kuota terpakai pemilik folder
     if (netSizeDifference !== 0) {
       await pool.query(
         `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
