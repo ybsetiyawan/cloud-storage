@@ -15,6 +15,15 @@ const folderRoutes = require("./routes/folders")
 
 const app = express()
 
+// Tangkap unhandled exception atau error stream agar server tidak crash
+process.on('uncaughtException', (err) => {
+  console.error('Terjadi Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Terjadi Unhandled Rejection di:', promise, 'alasan:', reason);
+});
+
 app.use(cors())
 app.use(express.json())
 
@@ -289,7 +298,6 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
     }
 
     const folder = folderRes.rows[0];
-    // Tentukan target folder id (bisa folder utama share atau subfolder di dalamnya)
     const targetFolderId = folderIdFromBody || folder.id;
 
     // 2. Validasi apakah folder mengizinkan upload publik
@@ -303,13 +311,33 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
       return res.status(400).json({ error: "Tidak ada file yang diunggah" });
     }
 
+    // 🔥 4. AMBIL DATA KUOTA PEMILIK FOLDER (USER)
+    const userRes = await pool.query(
+      `SELECT quota, used_quota FROM users WHERE id = $1`,
+      [folder.user_id]
+    );
+    const owner = userRes.rows[0];
+    const ownerQuota = parseInt(owner.quota) || 0;
+    let ownerUsed = parseInt(owner.used_quota) || 0;
+
+    // Hitung total ukuran file baru yang masuk sekaligus
+    const totalIncomingSize = req.files.reduce((acc, f) => acc + f.size, 0);
+
+    // 🔥 5. CEK APAKAH TOTALNYA MELEBIHI BATAS KUOTA PEMILIK
+    if (ownerQuota > 0 && (ownerUsed + totalIncomingSize) > ownerQuota) {
+      req.files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
+      return res.status(400).json({ 
+        error: "Penyimpanan pemilik folder telah penuh. Unggahan publik ditolak." 
+      });
+    }
+
     let netSizeDifference = 0; // Menghitung selisih kuota jika ada overwrite
 
     for (const file of req.files) {
       const originalName = file.originalname;
       const fileExtension = originalName.split(".").pop().toLowerCase();
 
-      // 4. Validasi ekstensi file jika dibatasi (allowed_extensions)
+      // 6. Validasi ekstensi file jika dibatasi (allowed_extensions)
       if (folder.allowed_extensions) {
         const allowedList = folder.allowed_extensions
           .split(",")
@@ -332,6 +360,8 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
 
       const fileId = nanoid(16);
       const ext = path.extname(originalName);
+      
+      // Catatan: Anda menggunakan path.join(__dirname, "uploads") atau buildPath, sesuaikan dengan helper storage Anda
       const uploadDir = path.join(__dirname, "uploads");
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -345,6 +375,12 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
         // --- JIKA SUDAH ADA: TIMPA (OVERWRITE) ---
         const oldFile = existingFile.rows[0];
         const oldSize = parseInt(oldFile.size) || 0;
+
+        // Validasi tambahan jika selisih overwrite membuat kuota jebol
+        if (ownerQuota > 0 && (ownerUsed + netSizeDifference - oldSize + fileSize) > ownerQuota) {
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+          continue; // Lewati file ini jika kuota tidak cukup
+        }
 
         // Hapus file fisik lama di storage
         if (oldFile.path && fs.existsSync(oldFile.path)) {
@@ -398,6 +434,60 @@ app.post("/api/public/shared/:token/upload", upload.array("files", 100), async (
   }
 });
 
+/* ==========================================================
+   🔥 TAMBAHKAN RUTE INI KHUSUS UNTUK PREVIEW GAMBAR 
+   (Biar tidak terhalang pengaturan allow_download)
+   ========================================================== */
+app.get("/api/public/preview-file/:fileId", async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const result = await pool.query(
+      `
+      WITH RECURSIVE folder_tree AS (
+        SELECT id, parent_id, is_public
+        FROM folders
+        WHERE id = (SELECT folder_id FROM files WHERE id = $1)
+
+        UNION ALL
+
+        SELECT f.id, f.parent_id, f.is_public
+        FROM folders f
+        INNER JOIN folder_tree ft ON ft.parent_id = f.id
+      )
+      SELECT 
+        f.*, 
+        EXISTS (
+          SELECT 1 FROM folder_tree WHERE is_public = true
+        ) as is_allowed
+      FROM files f
+      WHERE f.id = $1
+      `,
+      [fileId]
+    );
+
+    const file = result.rows[0];
+    if (!file) return res.status(404).send("File not found");
+
+    // Cek akses publik folder
+    if (!file.is_allowed && !file.is_public) {
+      return res.status(403).send("Unauthorized access");
+    }
+
+    const filePath = path.resolve(file.path);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("File missing on disk");
+    }
+
+    // Selalu gunakan inline agar browser merender gambar langsung, tanpa peduli status allow_download
+    res.setHeader("Content-Type", file.mime_type);
+    res.setHeader("Content-Disposition", `inline; filename="${file.original_name}"`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal server error");
+  }
+});
 /* =========================
     START SERVER
    ========================= */
