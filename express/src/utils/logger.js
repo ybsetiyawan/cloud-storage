@@ -28,13 +28,25 @@ async function logActivity(userId, action, fileId, fileName, path, ipAddress) {
 
 
 function getClientIp(req) {
-  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+  // Cek urutan header yang biasa diteruskan oleh proxy secara akurat
+  let ip = 
+    req.headers['x-client-ip'] ||
+    req.headers['x-forwarded-for'] ||
+    req.headers['cf-connecting-ip'] || // Jika menggunakan Cloudflare (opsional)
+    req.socket.remoteAddress || 
+    req.ip;
+
+  // Jika x-forwarded-for berisi banyak IP (list dipisah koma), 
+  // ambil IP pertama yang merupakan IP asli klien
   if (ip && ip.includes(',')) {
     ip = ip.split(',')[0].trim();
   }
+
+  // Bersihkan format IPv6 mapped jika ada
   if (ip && ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
   }
+
   return ip || "-";
 }
 
