@@ -445,6 +445,8 @@ router.get("/:id/download", auth, async (req, res) => {
 
     // 🔥 Ambil Alamat IP Klien
     const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    const clientPath = req.query.path || "root"; // 🔥 Ubah dari req.body ke req.query
+    
 
     // 1. Ambil info folder utama
     const folderRes = await pool.query(
@@ -457,7 +459,7 @@ router.get("/:id/download", auth, async (req, res) => {
     const zipFileName = `${folderName}.zip`;
 
     // 🔥 Catat aktivitas unduh folder ke log audit trail
-    await logActivity(userId, "DOWNLOAD_FOLDER", null, zipFileName, clientIp);
+    await logActivity(userId, "DOWNLOAD_FOLDER", null, zipFileName, clientPath, clientIp);
 
     // 2. Set header agar browser mengenali ini sebagai file ZIP
     res.setHeader('Content-Type', 'application/zip');

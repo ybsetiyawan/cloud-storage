@@ -26,15 +26,45 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons & Sort Controls -->
+       <!-- Action Buttons & Sort Controls -->
         <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn size="small" variant="tonal" color="amber-darken-3" class="mr-2 text-none px-4 rounded-pill font-weight-semibold" @click="createFolder">
+          
+          <!-- 🔥 Tombol Sort dengan tinggi presisi -->
+          <div class="d-flex align-center bg-grey-lighten-4 rounded-pill px-1 py-0.5 mr-1 border-sort uniform-control">
+            <v-btn
+              variant="text"
+              :color="sortBy === 'name' ? 'primary' : 'grey-darken-2'"
+              class="text-none px-3 font-weight-semibold rounded-pill sub-btn"
+              @click="toggleSort('name')"
+            >
+              <v-icon start size="15">mdi-sort-alphabetical-ascending</v-icon>
+              Nama
+              <v-icon end size="14">{{ getSortIcon('name') }}</v-icon>
+            </v-btn>
+
+            <v-divider vertical class="my-1.5" />
+
+            <v-btn
+              variant="text"
+              :color="sortBy === 'date' ? 'primary' : 'grey-darken-2'"
+              class="text-none px-3 font-weight-semibold rounded-pill sub-btn"
+              @click="toggleSort('date')"
+            >
+              <v-icon start size="15">mdi-calendar-clock</v-icon>
+              Tanggal
+              <v-icon end size="14">{{ getSortIcon('date') }}</v-icon>
+            </v-btn>
+          </div>
+
+          <!-- 🔥 Tombol Aksi Utama dengan kelas uniform-control agar ukurannya 100% sama -->
+          <v-btn variant="tonal" color="amber-darken-3" class="mr-1 text-none px-4 rounded-pill font-weight-semibold uniform-control" @click="createFolder">
             <v-icon start size="16">mdi-folder-plus-outline</v-icon> Folder
           </v-btn>
-          <v-btn size="small" variant="tonal" color="deep-orange-darken-2" class="mr-2 text-none px-4 rounded-pill font-weight-semibold" @click="uploadFiles('folder')">
+          <v-btn variant="tonal" color="deep-orange-darken-2" class="mr-1 text-none px-4 rounded-pill font-weight-semibold uniform-control" @click="uploadFiles('folder')">
             <v-icon start size="16">mdi-folder-upload-outline</v-icon> Up Folder
           </v-btn>
-          <v-btn size="small" color="primary" variant="flat" class="text-none px-4.5 rounded-pill font-weight-semibold text-white elevation-0" @click="uploadFiles('file')">
+          <v-btn color="primary" variant="flat" class="text-none px-4 rounded-pill font-weight-semibold text-white elevation-0 uniform-control" @click="uploadFiles('file')">
             <v-icon start size="16">mdi-cloud-upload-outline</v-icon> Upload File
           </v-btn>
         </div>
@@ -347,7 +377,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Snackbar / Toast Notification (Posisi: Top Right) -->
+    <!-- Snackbar / Toast Notification -->
     <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" rounded="pill" location="top right" class="mt-16 mr-4">
       <div class="d-flex align-center gap-2">
         <v-icon size="20">
@@ -384,6 +414,10 @@ const thumbnailMap = ref<Record<string, string>>({});
 const showUploadDialog = ref(false);
 const uploadProgress = ref<{ name: string; progress: number }[]>([]);
 
+// --- VARIABEL STATE SORT (Hanya Name dan Date) ---
+const sortBy = ref<string>("name"); // 'name' | 'date'
+const sortOrder = ref<"asc" | "desc">("asc"); // 'asc' | 'desc'
+
 const showRenameDialog = ref(false);
 const itemToRename = ref<any>(null);
 const renameValue = ref("");
@@ -407,6 +441,17 @@ const settingAllowDownload = ref(true);
 const showOverwriteDialog = ref(false);
 const conflictingFileName = ref("");
 let overwriteResolve: ((value: boolean) => void) | null = null;
+
+const getCurrentFullPath = () => {
+  const pathNames = breadcrumbs.value.map(b => b.name);
+  // Jika Anda ingin memastikan kata 'root' diikuti dengan seluruh jejak folder di breadcrumbs:
+  return ['root', ...pathNames].join(' / ');
+};
+
+
+
+
+
 
 function promptOverwrite(fileName: string): Promise<boolean> {
   conflictingFileName.value = fileName;
@@ -438,13 +483,56 @@ const selectedItems = computed(() =>
   [...folders.value, ...files.value].filter((i) => selectedMap.value[i.id]),
 );
 
-const filteredItems = computed(() =>
-  [...folders.value, ...files.value].filter((i) =>
+// --- FUNGSI PENGATURAN SORT ---
+function toggleSort(field: string) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortOrder.value = "asc";
+  }
+}
+
+function getSortIcon(field: string) {
+  if (sortBy.value !== field) return "mdi-unfold-more-horizontal";
+  return sortOrder.value === "asc" ? "mdi-sort-ascending" : "mdi-sort-descending";
+}
+
+const filteredItems = computed(() => {
+  const searched = [...folders.value, ...files.value].filter((i) =>
     (i.name || i.original_name || "")
       .toLowerCase()
       .includes(searchQuery.value.toLowerCase()),
-  ),
-);
+  );
+
+  const foldList = searched.filter(i => i.type === 'folder');
+  const fileList = searched.filter(i => i.type !== 'folder');
+
+  const compare = (a: any, b: any) => {
+    let valA: any;
+    let valB: any;
+
+    if (sortBy.value === 'name') {
+      valA = a.name || a.original_name || "";
+      valB = b.name || b.original_name || "";
+      
+      // 🔥 Gunakan { numeric: true } agar angka diurutkan secara numerik (1, 2, 10, 12)
+      const result = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+      return sortOrder.value === 'asc' ? result : -result;
+
+    } else if (sortBy.value === 'date') {
+      valA = new Date(a.created_at || 0).getTime();
+      valB = new Date(b.created_at || 0).getTime();
+      return sortOrder.value === 'asc' ? valA - valB : valB - valA;
+    }
+    return 0;
+  };
+
+  foldList.sort(compare);
+  fileList.sort(compare);
+
+  return [...foldList, ...fileList];
+});
 
 const isAllSelected = computed({
   get() {
@@ -560,7 +648,7 @@ function getIconConfig(item: any) {
     case "mp4": case "mkv": case "avi": case "mov": return { icon: "mdi-file-video", class: "icon-video-clean" };
     case "mp3": case "wav": case "ogg": return { icon: "mdi-file-music", class: "icon-audio-clean" };
     case "txt": case "log": case "md": return { icon: "mdi-file-document-outline", class: "icon-txt-clean" };
-    case "db": case "md": return { icon: "mdi-database", class: "icon-txt-clean" };
+    case "db": return { icon: "mdi-database", class: "icon-txt-clean" };
     case "apk": return { icon: "mdi-android", class: "icon-excel-clean" };
     default: return { icon: "mdi-file-outline", class: "icon-default-clean" };
   }
@@ -639,7 +727,6 @@ async function saveShareSettings() {
   }
 }
 
-
 async function shareItems(items: any[]) {
   const item = items[0];
   if (!item) return;
@@ -694,7 +781,6 @@ function confirmDelete(items: any[]) {
   showDeleteDialog.value = true;
 }
 
-// Fungsi untuk memperbarui kuota secara real-time di sidebar layout admin
 async function refreshUserQuota() {
   try {
     const userRes = (await $api("/auth/me")) as any;
@@ -713,17 +799,44 @@ async function refreshUserQuota() {
   }
 }
 
+// async function executeDelete() {
+//   try {
+//     await Promise.all(
+//       itemsToDelete.value.map((item) =>
+//         item.type === "folder" ? $api(`/folders/${item.id}`, { method: "DELETE" }) : $api(`/files/${item.id}`, { method: "DELETE" }),
+//       ),
+//     );
+//     showDeleteDialog.value = false;
+//     clearSelection();
+//     fetchFolderContent(currentFolderId.value);
+//     await refreshUserQuota();
+//     snackbarColor.value = "success";
+//     snackbarText.value = "Item berhasil dihapus.";
+//     snackbar.value = true;
+//   } catch (err) {
+//     snackbarColor.value = "error";
+//     snackbarText.value = "Gagal menghapus.";
+//     snackbar.value = true;
+//   }
+// }
+
 async function executeDelete() {
   try {
     await Promise.all(
-      itemsToDelete.value.map((item) =>
-        item.type === "folder" ? $api(`/folders/${item.id}`, { method: "DELETE" }) : $api(`/files/${item.id}`, { method: "DELETE" }),
-      ),
+      itemsToDelete.value.map((item) => {
+        const endpoint = item.type === "folder" ? `/folders/${item.id}` : `/files/${item.id}`;
+        return $api(endpoint, { 
+          method: "DELETE",
+          body: {
+            path: getCurrentFullPath() // 🔥 Kirimkan path saat hapus
+          }
+        });
+      }),
     );
     showDeleteDialog.value = false;
     clearSelection();
     fetchFolderContent(currentFolderId.value);
-    await refreshUserQuota(); // 👈 Update kuota di sidebar setelah hapus file/folder
+    await refreshUserQuota();
     snackbarColor.value = "success";
     snackbarText.value = "Item berhasil dihapus.";
     snackbar.value = true;
@@ -736,7 +849,13 @@ async function executeDelete() {
 
 async function handleDownload(item: any) {
   if (!item) return;
-  const endpoint = item.type === "folder" ? `/folders/${item.id}/download` : `/files/${item.id}`;
+  const currentPath = encodeURIComponent(getCurrentFullPath()); // 🔥 Ambil path aktif
+  
+  // 🔥 Sisipkan query parameter ?path= di ujung endpoint
+  const endpoint = item.type === "folder" 
+    ? `/folders/${item.id}/download?path=${currentPath}` 
+    : `/files/${item.id}?path=${currentPath}`;
+
   try {
     const response = await $api<Blob>(endpoint, { method: "GET", responseType: "blob" }) as Blob;
     const downloadUrl = window.URL.createObjectURL(response);
@@ -767,6 +886,29 @@ function openRenameDialog(item: any) {
   showRenameDialog.value = true;
 }
 
+// async function submitRename() {
+//   if (!renameValue.value || !itemToRename.value) return;
+//   try {
+//     const endpoint = itemToRename.value.type === "folder" 
+//       ? `/folders/${itemToRename.value.id}/rename` 
+//       : `/files/${itemToRename.value.id}/rename`;
+      
+//     await $api(endpoint, { method: "PUT", body: { name: renameValue.value } });
+    
+//     showRenameDialog.value = false;
+//     fetchFolderContent(currentFolderId.value);
+    
+//     snackbarColor.value = "success";
+//     snackbarText.value = "Nama berhasil diubah.";
+//     snackbar.value = true;
+//   } catch (err: any) {
+//     const errorMessage = err?.data?.error || err?.message || "Gagal mengubah nama.";
+//     snackbarColor.value = "error";
+//     snackbarText.value = errorMessage;
+//     snackbar.value = true;
+//   }
+// }
+
 async function submitRename() {
   if (!renameValue.value || !itemToRename.value) return;
   try {
@@ -774,7 +916,13 @@ async function submitRename() {
       ? `/folders/${itemToRename.value.id}/rename` 
       : `/files/${itemToRename.value.id}/rename`;
       
-    await $api(endpoint, { method: "PUT", body: { name: renameValue.value } });
+    await $api(endpoint, { 
+      method: "PUT", 
+      body: { 
+        name: renameValue.value,
+        path: getCurrentFullPath() // 🔥 Kirimkan path saat rename
+      } 
+    });
     
     showRenameDialog.value = false;
     fetchFolderContent(currentFolderId.value);
@@ -792,12 +940,39 @@ async function submitRename() {
 
 function createFolder() { showCreateDialog.value = true; }
 
+// async function submitCreateFolder() {
+//   if (!newFolderName.value) return;
+//   try {
+//     await $api("/folders", { 
+//       method: "POST", 
+//       body: { name: newFolderName.value, parent_id: currentFolderId.value } 
+//     });
+    
+//     showCreateDialog.value = false;
+//     newFolderName.value = "";
+//     fetchFolderContent(currentFolderId.value);
+    
+//     snackbarColor.value = "success";
+//     snackbarText.value = "Folder berhasil dibuat!";
+//     snackbar.value = true;
+//   } catch (err: any) {
+//     const errorMessage = err?.data?.error || err?.message || "Gagal membuat folder.";
+//     snackbarColor.value = "error";
+//     snackbarText.value = errorMessage;
+//     snackbar.value = true;
+//   }
+// }
+
 async function submitCreateFolder() {
   if (!newFolderName.value) return;
   try {
     await $api("/folders", { 
       method: "POST", 
-      body: { name: newFolderName.value, parent_id: currentFolderId.value } 
+      body: { 
+        name: newFolderName.value, 
+        parent_id: currentFolderId.value,
+        path: getCurrentFullPath() // 🔥 Kirimkan path saat membuat folder
+      } 
     });
     
     showCreateDialog.value = false;
@@ -827,6 +1002,107 @@ function formatDateTime(d: any) {
   });
 }
 
+// function uploadFiles(mode = 'file') {
+//   const input = document.createElement("input");
+//   input.type = "file";
+//   if (mode === 'folder') {
+//     // @ts-ignore
+//     input.webkitdirectory = true;
+//   } else {
+//     input.multiple = true;
+//   }
+
+//   input.onchange = async () => {
+//     if (!input.files || input.files.length === 0) return;
+//     const filesArr = Array.from(input.files);
+//     uploadProgress.value = filesArr.map((f) => ({ name: f.webkitRelativePath || f.name, progress: 0 }));
+//     showUploadDialog.value = true;
+//     const token = localStorage.getItem("admin_token");
+//     const uploadUrl = `${window.location.protocol}//${window.location.hostname}:8090/api/files/upload`;
+
+//     let hasError = false;
+//     let errorMsg = "";
+//     let uploadedCount = 0;
+
+//     for (let i = 0; i < filesArr.length; i++) {
+//       const file = filesArr[i];
+//       if (!file) continue;
+
+//       const fileName = file.name;
+//       const isDuplicate = files.value.some(
+//         (fItem) => (fItem.name || fItem.original_name || "").toLowerCase() === fileName.toLowerCase()
+//       );
+
+//       if (isDuplicate && mode !== 'folder') {
+//         showUploadDialog.value = false;
+//         const shouldOverwrite = await promptOverwrite(fileName);
+//         showUploadDialog.value = true;
+
+//        if (!shouldOverwrite) {
+//           if (uploadProgress.value[i]) {
+//             uploadProgress.value[i]!.progress = 100;
+//           }
+//           continue; 
+//         }
+//       }
+
+//       const formData = new FormData();
+//       if (currentFolderId.value) formData.append("folder_id", String(currentFolderId.value));
+//       formData.append("fullPath", file.webkitRelativePath || file.name);
+//       formData.append("files", file);
+//       formData.append("path", getCurrentFullPath());
+//       const currentItem = uploadProgress.value[i];
+
+//       try {
+//         await new Promise<void>((resolve, reject) => {
+//           const xhr = new XMLHttpRequest();
+//           xhr.open("POST", uploadUrl);
+//           xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+//           xhr.upload.onprogress = (e) => {
+//             if (e.lengthComputable && currentItem) currentItem.progress = Math.round((e.loaded / e.total) * 100);
+//           };
+//           xhr.onload = () => {
+//             if (xhr.status >= 200 && xhr.status < 300) {
+//               resolve();
+//             } else {
+//               try {
+//                 const resJson = JSON.parse(xhr.responseText);
+//                 reject(new Error(resJson.error || "Upload gagal"));
+//               } catch (e) {
+//                 reject(new Error("Upload gagal"));
+//               }
+//             }
+//           };
+//           xhr.onerror = () => reject(new Error("Koneksi jaringan gagal"));
+//           xhr.send(formData);
+//         });
+//         uploadedCount++;
+//       } catch (err: any) {
+//         hasError = true;
+//         errorMsg = err.message;
+//         break; 
+//       }
+//     }
+
+//     showUploadDialog.value = false;
+
+//     if (hasError) {
+//       snackbarColor.value = "error";
+//       snackbarText.value = `Gagal mengunggah: ${errorMsg}`;
+//       snackbar.value = true;
+//     } else {
+//       fetchFolderContent(currentFolderId.value);
+//       await refreshUserQuota();
+//       snackbarColor.value = "success";
+//       snackbarText.value = mode === 'folder' 
+//         ? `Berhasil mengunggah folder (${filesArr.length} berkas)` 
+//         : `Berhasil mengunggah ${uploadedCount} berkas`;
+//       snackbar.value = true;
+//     }
+//   };
+//   input.click();
+// }
+
 function uploadFiles(mode = 'file') {
   const input = document.createElement("input");
   input.type = "file";
@@ -840,8 +1116,10 @@ function uploadFiles(mode = 'file') {
   input.onchange = async () => {
     if (!input.files || input.files.length === 0) return;
     const filesArr = Array.from(input.files);
+    
     uploadProgress.value = filesArr.map((f) => ({ name: f.webkitRelativePath || f.name, progress: 0 }));
     showUploadDialog.value = true;
+    
     const token = localStorage.getItem("admin_token");
     const uploadUrl = `${window.location.protocol}//${window.location.hostname}:8090/api/files/upload`;
 
@@ -853,28 +1131,16 @@ function uploadFiles(mode = 'file') {
       const file = filesArr[i];
       if (!file) continue;
 
-      const fileName = file.name;
-      const isDuplicate = files.value.some(
-        (fItem) => (fItem.name || fItem.original_name || "").toLowerCase() === fileName.toLowerCase()
-      );
-
-      if (isDuplicate && mode !== 'folder') {
-        showUploadDialog.value = false;
-        const shouldOverwrite = await promptOverwrite(fileName);
-        showUploadDialog.value = true;
-
-       if (!shouldOverwrite) {
-          if (uploadProgress.value[i]) {
-            uploadProgress.value[i]!.progress = 100;
-          }
-          continue; 
-        }
-      }
-
       const formData = new FormData();
       if (currentFolderId.value) formData.append("folder_id", String(currentFolderId.value));
+      
+      // 🔥 Kirimkan path relatif folder (misal: "ITAM/sub/file.xlsx")
       formData.append("fullPath", file.webkitRelativePath || file.name);
       formData.append("files", file);
+      
+      // 🔥 Kirimkan path root aktif saat ini agar log aktivitas akurat
+      formData.append("path", getCurrentFullPath());
+      
       const currentItem = uploadProgress.value[i];
 
       try {
@@ -916,7 +1182,7 @@ function uploadFiles(mode = 'file') {
       snackbar.value = true;
     } else {
       fetchFolderContent(currentFolderId.value);
-      await refreshUserQuota(); // 👈 Update kuota di sidebar setelah sukses upload file/folder
+      await refreshUserQuota();
       snackbarColor.value = "success";
       snackbarText.value = mode === 'folder' 
         ? `Berhasil mengunggah folder (${filesArr.length} berkas)` 
@@ -942,12 +1208,27 @@ onMounted(() => {
 <style scoped>
 .modern-clean-container {
   background-color: #f8fafc;
-  height: calc(100vh - 46px);
+  /* 🔥 Diperbesar sedikit pengurainya agar bagian bawah tidak terpotong */
+  height: calc(100vh - 80px) !important;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding-top: 6px !important;
-  padding-bottom: 6px !important;
+  padding-bottom: 24px !important; /* Memberikan ruang ekstra di bawah */
+}
+
+/* 🔥 Mengunci ukuran tinggi semua tombol dan kotak sort agar mutlak sama persis */
+.uniform-control {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+}
+
+.sub-btn {
+  height: 30px !important;
+  min-height: 30px !important;
+  font-size: 13px !important;
 }
 
 .clean-card-border {
@@ -1059,4 +1340,8 @@ onMounted(() => {
 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 8px; }
+
+.border-sort {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
 </style>

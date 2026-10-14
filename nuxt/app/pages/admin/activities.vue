@@ -25,7 +25,7 @@
           <v-text-field
             v-model="searchQuery"
             prepend-inner-icon="mdi-magnify"
-            placeholder="Cari berdasarkan username, aksi, nama berkas, atau IP..."
+            placeholder="Cari berdasarkan username, aksi, nama berkas..."
             density="comfortable"
             variant="outlined"
             bg-color="#f8fafc"
@@ -109,6 +109,12 @@
             </v-chip>
           </template>
 
+          <template v-slot:[`item.path`]="{ item }">
+            <span class="font-weight-semibold text-primary text-truncate d-inline-block" style="max-width: 350px;" :title="item.path">
+              {{ item.path || '-' }}
+            </span>
+          </template>
+
           <!-- Kolom Nama Berkas -->
           <template v-slot:[`item.file_name`]="{ item }">
             <span class="font-weight-semibold text-primary text-truncate d-inline-block" style="max-width: 350px;" :title="item.file_name">
@@ -174,6 +180,7 @@ const sortOrder = ref("desc");
 const headers = [
   { title: 'Pengguna', key: 'username', width: '180px', sortable: false },
   { title: 'Aktivitas', key: 'action', width: '160px', sortable: false },
+  { title: 'Path', key: 'path', sortable: false },
   { title: 'Nama Berkas', key: 'file_name', sortable: false },
   { title: 'Alamat IP', key: 'ip_address', width: '160px', sortable: false },
   { title: 'Waktu', key: 'created_at', width: '180px', align: 'end' as const, sortable: false },

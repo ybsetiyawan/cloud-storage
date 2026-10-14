@@ -21,7 +21,7 @@ router.get("/", auth, async (req, res) => {
       FROM activities a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN files f ON a.file_id = f.id
-      WHERE (COALESCE(u.username, 'anonymous') ILIKE $1 OR a.action ILIKE $1 OR f.original_name ILIKE $1 OR a.file_name ILIKE $1)
+      WHERE (COALESCE(u.username, 'anonymous') ILIKE $1 OR a.action ILIKE $1 OR f.original_name ILIKE $1 OR a.file_name ILIKE $1 OR a.path ILIKE $1)
     `;
     let params = [search];
     let paramIndex = 2;
@@ -49,15 +49,16 @@ router.get("/", auth, async (req, res) => {
     const countResult = await pool.query(countQuery, params);
     const totalItems = parseInt(countResult.rows[0].count);
 
-    // 2. Ambil data dengan limit & offset
-    let dataQuery = `
+    // 2. Ambil data dengan limit & offset (🔥 Tambahkan a.path di sini)
+   let dataQuery = `
       SELECT 
         a.id, 
         a.action, 
         a.ip_address,
+        a.path, 
         a.created_at, 
         COALESCE(u.username, 'anonymous') as username, 
-        COALESCE(f.original_name, a.file_name, '-') as file_name
+        COALESCE(a.file_name, f.original_name, '-') as file_name
       ${baseQuery}
       ORDER BY a.created_at ${sortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -77,4 +78,5 @@ router.get("/", auth, async (req, res) => {
     res.status(500).json({ error: "Gagal memuat daftar aktivitas" });
   }
 });
+
 module.exports = router;
