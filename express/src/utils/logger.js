@@ -26,4 +26,16 @@ async function logActivity(userId, action, fileId, fileName, path, ipAddress) {
   }
 }
 
-module.exports = { logActivity };
+
+function getClientIp(req) {
+  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+  if (ip && ip.includes(',')) {
+    ip = ip.split(',')[0].trim();
+  }
+  if (ip && ip.startsWith("::ffff:")) {
+    ip = ip.replace("::ffff:", "");
+  }
+  return ip || "-";
+}
+
+module.exports = { logActivity, getClientIp };

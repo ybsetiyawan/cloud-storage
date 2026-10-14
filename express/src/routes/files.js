@@ -7,7 +7,7 @@ const { nanoid } = require("nanoid");
 const pool = require("../db");
 const auth = require("../middleware/auth");
 const { buildPath } = require("../services/storage");
-const { logActivity } = require("../utils/logger");
+const { logActivity, getClientIp } = require("../utils/logger");
 
 const router = express.Router();
 
@@ -68,151 +68,13 @@ async function getOrCreateFolderId(fullPath, userId, initialParentId) {
   return currentParentId;
 }
 
-
-// router.post("/upload", auth, upload.array("files", 1000), async (req, res) => {
-//   const userId = req.user.id;
-//   const initialFolderId = req.body.folder_id || null;
-//   const fullPaths = req.body.fullPath; 
-//   const clientPath = req.body.path || "root"; // 🔥 Tangkap path dari frontend
-//   const results = [];
-//   const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
-
-//   try {
-//     const files = req.files || [];
-//     if (!files.length) return res.status(400).json({ error: "no files uploaded" });
-
-//     // 1. AMBIL DATA QUOTA USER TERLEBIH DAHULU
-//     const userRes = await pool.query(
-//       `SELECT quota, used_quota FROM users WHERE id = $1`,
-//       [userId]
-//     );
-//     const user = userRes.rows[0];
-//     let currentQuota = parseInt(user.quota) || 0;
-//     let currentUsed = parseInt(user.used_quota) || 0;
-
-//     // Hitung total ukuran seluruh file yang akan di-upload sekaligus
-//     const totalIncomingSize = files.reduce((acc, f) => acc + f.size, 0);
-
-//     // 2. CEK APAKAH TOTALNYA MELEBIHI KUOTA (Jika kuota tidak unlimited/0)
-//     if (currentQuota > 0 && (currentUsed + totalIncomingSize) > currentQuota) {
-//       // Hapus file temp yang kadung ter-upload oleh multer
-//       files.forEach(f => {
-//         if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
-//       });
-//       return res.status(400).json({ 
-//         error: "Penyimpanan Anda tidak mencukupi untuk mengunggah berkas ini." 
-//       });
-//     }
-
-//     for (let i = 0; i < files.length; i++) {
-//       const file = files[i];
-      
-//       // Handle jika request datang satu per satu (string) atau sekaligus (array)
-//       let currentPath = Array.isArray(fullPaths) ? fullPaths[i] : fullPaths;
-
-//       try {
-//         // 1. Dapatkan Folder ID secara rekursif
-//         const targetFolderId = await getOrCreateFolderId(currentPath, userId, initialFolderId);
-
-//         // 2. Cek apakah file dengan nama yang sama sudah ada di folder tersebut (case-insensitive)
-//         const existingFile = await pool.query(
-//           `SELECT id, path, size FROM files 
-//            WHERE user_id = $1 AND LOWER(original_name) = LOWER($2) AND (folder_id IS NOT DISTINCT FROM $3)`,
-//           [userId, file.originalname, targetFolderId]
-//         );
-
-//         const id = nanoid(16);
-//         const ext = path.extname(file.originalname);
-//         const finalPath = buildPath(userId, id + ext); 
-
-//         if (existingFile.rowCount > 0) {
-//           // --- JIKA SUDAH ADA: TIMPA (OVERWRITE) ---
-//           const oldFile = existingFile.rows[0];
-//           const oldSize = parseInt(oldFile.size) || 0;
-
-//           // Validasi tambahan khusus overwrite jika file penggantinya lebih besar dari sisa kuota
-//           if (currentQuota > 0 && (currentUsed - oldSize + file.size) > currentQuota) {
-//             if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-//             results.push({ name: file.originalname, status: "error: kuota terlampaui" });
-//             continue;
-//           }
-
-//           // Hapus file fisik lama di storage jika ada
-//           if (oldFile.path && fs.existsSync(oldFile.path)) {
-//             fs.unlinkSync(oldFile.path);
-//           }
-
-//           // Pindahkan file baru dari temp ke storage
-//           if (fs.existsSync(file.path)) {
-//             fs.renameSync(file.path, finalPath);
-//           }
-
-//           // Update data file lama di database
-//           await pool.query(
-//             `UPDATE files 
-//              SET stored_name = $1, path = $2, size = $3, mime_type = $4, created_at = NOW() 
-//              WHERE id = $5`,
-//             [id + ext, finalPath, file.size, file.mimetype, oldFile.id]
-//           );
-          
-
-//           // Update kuota user (selisih antara file baru dan file lama)
-//           const sizeDiff = file.size - oldSize;
-//           if (sizeDiff !== 0) {
-//             await pool.query(
-//               `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
-//               [sizeDiff, userId]
-//             );
-//             currentUsed += sizeDiff; // Sinkronkan variabel lokal
-//           }
-//           await logActivity(userId, "OVERWRITE_FILE", oldFile.id, file.originalname, clientPath, clientIp);
-
-//           results.push({ id: oldFile.id, status: "success (overwritten)", name: file.originalname });
-
-//         } else {
-//           // --- JIKA BELUM ADA: SIMPAN BARU ---
-//           if (fs.existsSync(file.path)) {
-//             fs.renameSync(file.path, finalPath);
-//           }
-
-//           await pool.query(
-//             `INSERT INTO files(id, user_id, folder_id, original_name, stored_name, path, size, mime_type)
-//              VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-//             [id, userId, targetFolderId, file.originalname, id + ext, finalPath, file.size, file.mimetype]
-//           );
-
-//           await pool.query(
-//             `UPDATE users SET used_quota = used_quota + $1 WHERE id = $2`,
-//             [file.size, userId]
-//           );
-//           currentUsed += file.size; // Sinkronkan variabel lokal
-
-//           await logActivity(userId, "UPLOAD_FILE", id, file.originalname, clientPath, clientIp);
-
-//           results.push({ id, status: "success", name: file.originalname });
-//         }
-
-//       } catch (fileErr) {
-//         console.error("Error file:", file.originalname, fileErr);
-//         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-//         results.push({ name: file.originalname, status: "error" });
-//       }
-//     }
-//     res.json({ results });
-//   } catch (err) {
-//     console.error("Upload Global Error:", err);
-//     res.status(500).json({ error: "Upload failed" });
-//   }
-// });
-
-
 router.post("/upload", auth, upload.array("files", 1000), async (req, res) => {
   const userId = req.user.id;
   const initialFolderId = req.body.folder_id || null;
   const fullPaths = req.body.fullPath; 
   const clientPath = req.body.path || "root"; // Path dasar dari frontend (misal: "root" atau "root / Dokumen")
   const results = [];
-  const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+  const clientIp = getClientIp(req);
 
   try {
     const files = req.files || [];
@@ -388,9 +250,6 @@ router.get("/", auth, async (req, res) => {
 /* =========================
    DOWNLOAD FILE
 ========================= */
-/* =========================
-   DOWNLOAD FILE
-========================= */
 router.get("/:id", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -398,7 +257,8 @@ router.get("/:id", auth, async (req, res) => {
     
     // 🔥 Ambil Alamat IP Klien
     const clientPath = req.query.path ? decodeURIComponent(req.query.path) : "root";
-    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    // const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    const clientIp = getClientIp(req);
 
     const result = await pool.query(
       `SELECT * FROM files WHERE id=$1 AND user_id=$2`,
@@ -482,7 +342,8 @@ router.put("/:id/rename", auth, async (req, res) => {
     const { name } = req.body;
     
     // 🔥 Ambil Alamat IP Klien
-    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    // const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    const clientIp = getClientIp(req);
     const clientPath = req.body.path || "root"; // 🔥 Tangkap path dari frontend
 
 
@@ -566,7 +427,8 @@ router.delete("/:id", auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const fileId = req.params.id;
-    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    // const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    const clientIp = getClientIp(req);
     const clientPath = req.body.path || "root"; // 🔥 Tangkap path dari frontend
     
     const result = await pool.query(
