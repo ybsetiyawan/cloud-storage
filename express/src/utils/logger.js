@@ -28,6 +28,11 @@ async function logActivity(userId, action, fileId, fileName, path, ipAddress) {
 
 
 function getClientIp(req) {
+  console.log("--- DEBUG IP ---");
+  console.log("req.ip:", req.ip);
+  console.log("req.socket.remoteAddress:", req.socket.remoteAddress);
+  console.log("req.headers['x-forwarded-for']:", req.headers['x-forwarded-for']);
+  
   let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
   if (ip && ip.includes(',')) {
     ip = ip.split(',')[0].trim();
