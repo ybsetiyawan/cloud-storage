@@ -423,13 +423,63 @@ router.put("/:id/move", auth, async (req, res) => {
 /* =========================
    DELETE FILE
 ========================= */
+// router.delete("/:id", auth, async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const fileId = req.params.id;
+//     // const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+//     const clientIp = getClientIp(req);
+//     const clientPath = req.body.path || "root"; // 🔥 Tangkap path dari frontend
+    
+//     const result = await pool.query(
+//       `SELECT * FROM files WHERE id=$1 AND user_id=$2`,
+//       [fileId, userId],
+//     );
+
+//     const file = result.rows[0];
+
+//     if (!file) {
+//       return res.status(404).json({ error: "file not found" });
+//     }
+
+//     const originalFileName = file.original_name; // 🔥 Ambil nama file asli
+
+//     // Catat log aktivitas dengan menyertakan nama file sebelum dihapus
+//     await logActivity(userId, "DELETE_FILE", fileId, originalFileName, clientPath, clientIp);
+
+//     // Hapus file fisik di disk
+//     if (fs.existsSync(file.path)) {
+//       fs.unlinkSync(file.path);
+//     }
+
+//     // Hapus dari database
+//     await pool.query(`DELETE FROM files WHERE id=$1`, [fileId]);
+
+//     // Update kuota
+//     await pool.query(
+//       `UPDATE users SET used_quota = used_quota - $1 WHERE id=$2`,
+//       [file.size, userId],
+//     );
+
+//     res.json({ success: true });
+//   } catch (err) {
+//     console.error("Delete File Error:", err);
+//     res.status(500).json({ error: "delete failed" });
+//   }
+// });
+
+
+
 router.delete("/:id", auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const fileId = req.params.id;
-    // const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
-    const clientIp = getClientIp(req);
-    const clientPath = req.body.path || "root"; // 🔥 Tangkap path dari frontend
+    
+    // 🔥 Ekstraksi IP murni menggunakan const (functional & clean)
+    const rawIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || req.ip;
+    const clientIp = rawIp?.startsWith("::ffff:") ? rawIp.replace("::ffff:", "") : (rawIp || "127.0.0.1");
+
+    const clientPath = req.body.path || "root"; 
     
     const result = await pool.query(
       `SELECT * FROM files WHERE id=$1 AND user_id=$2`,
@@ -442,9 +492,9 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(404).json({ error: "file not found" });
     }
 
-    const originalFileName = file.original_name; // 🔥 Ambil nama file asli
+    const originalFileName = file.original_name; 
 
-    // Catat log aktivitas dengan menyertakan nama file sebelum dihapus
+    // Catat log aktivitas dengan IP hasil ekstraksi const
     await logActivity(userId, "DELETE_FILE", fileId, originalFileName, clientPath, clientIp);
 
     // Hapus file fisik di disk

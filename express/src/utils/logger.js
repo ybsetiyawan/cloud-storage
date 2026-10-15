@@ -27,30 +27,18 @@ async function logActivity(userId, action, fileId, fileName, path, ipAddress) {
 }
 
 
-function getClientIp(req) {
-  // Cek urutan header yang biasa diteruskan oleh proxy secara akurat
-  let ip = 
-    // req.headers['x-client-ip'] ||
-    // req.headers['x-forwarded-for'] ||
-    // req.headers['cf-connecting-ip'] || // Jika menggunakan Cloudflare (opsional)
-    // req.socket.remoteAddress || 
-    // req.ip;
-    req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1'
 
-  // Jika x-forwarded-for berisi banyak IP (list dipisah koma), 
-  // ambil IP pertama yang merupakan IP asli klien
+function getClientIp(req) {
+  // Karena 'trust proxy' bernilai true, req.ip otomatis berisi IP asli dari Nginx (X-Real-IP / X-Forwarded-For)
+  let ip = req.ip || req.socket.remoteAddress || req.headers['x-forwarded-for'];
+
   if (ip && ip.includes(',')) {
     ip = ip.split(',')[0].trim();
   }
-
-  // Bersihkan format IPv6 mapped jika ada
   if (ip && ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
   }
-
   return ip || "-";
-
-  
 }
 
 module.exports = { logActivity, getClientIp };

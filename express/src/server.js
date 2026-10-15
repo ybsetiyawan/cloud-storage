@@ -17,7 +17,7 @@ const activityRoutes = require("./routes/activities");
 
 const app = express()
 
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Tangkap unhandled exception atau error stream agar server tidak crash
 process.on('uncaughtException', (err) => {
