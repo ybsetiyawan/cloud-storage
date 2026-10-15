@@ -1,4 +1,3 @@
-const requestIp = require('request-ip');
 const pool = require("../db");
 const { nanoid } = require("nanoid");
 
@@ -11,10 +10,11 @@ function cleanIp(ip) {
   return ip;
 }
 
+// 🔥 Tambahkan parameter "path" di sini
 async function logActivity(userId, action, fileId, fileName, path, ipAddress) {
   try {
-    const sanitizedIp = cleanIp(ipAddress);
-    const sanitizedPath = path || "root";
+    const sanitizedIp = cleanIp(ipAddress); // Bersihkan format IP
+    const sanitizedPath = path || "root"; // Fallback ke 'root' jika path kosong
 
     await pool.query(
       `INSERT INTO activities (id, user_id, action, file_id, file_name, path, ip_address, created_at)
@@ -26,10 +26,16 @@ async function logActivity(userId, action, fileId, fileName, path, ipAddress) {
   }
 }
 
-// 🔥 Menggunakan request-ip untuk mendeteksi IP klien secara presisi
+
 function getClientIp(req) {
-  const detectedIp = requestIp.getClientIp(req);
-  return cleanIp(detectedIp);
+  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+  if (ip && ip.includes(',')) {
+    ip = ip.split(',')[0].trim();
+  }
+  if (ip && ip.startsWith("::ffff:")) {
+    ip = ip.replace("::ffff:", "");
+  }
+  return ip || "-";
 }
 
 module.exports = { logActivity, getClientIp };
