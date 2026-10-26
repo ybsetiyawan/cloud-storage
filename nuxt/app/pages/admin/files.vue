@@ -118,7 +118,11 @@
     </v-slide-y-transition>
 
     <!-- Main File List Card -->
-    <v-card class="list-container-card elevation-0 rounded-xl bg-white clean-card-border">
+    <v-card 
+      class="list-container-card elevation-0 rounded-xl bg-white clean-card-border"
+      @dragover.prevent
+      @drop.prevent="handleDrop"
+      >
       <div class="scroll-wrapper custom-scrollbar pa-2">
         
         <!-- Loading State -->
@@ -1102,6 +1106,163 @@ function formatDateTime(d: any) {
 //   };
 //   input.click();
 // }
+
+// --- LOGIKA DRAG & DROP FOLDER & BERKAS BERLAPIS ---
+async function handleDrop(event: DragEvent) {
+  event.preventDefault();
+  const items = event.dataTransfer?.items;
+  if (!items || items.length === 0) return;
+
+  const folderPathsSet = new Set<string>();
+  const fileEntries: { file: File; relativePath: string }[] = [];
+
+  // Fungsi rekursif untuk menelusuri isi item (file atau direktori)
+  async function traverseEntry(item: FileSystemEntry, path = "") {
+    if (item.isFile) {
+      await new Promise<void>((resolve) => {
+        (item as FileSystemFileEntry).file((file) => {
+          const relativePath = path ? `${path}/${file.name}` : file.name;
+          fileEntries.push({ file, relativePath });
+          resolve();
+        });
+      });
+    } else if (item.isDirectory) {
+      const dirName = item.name;
+      const currentPath = path ? `${path}/${dirName}` : dirName;
+      
+      // Catat path folder (termasuk folder kosong)
+      folderPathsSet.add(currentPath);
+
+      const dirReader = (item as FileSystemDirectoryEntry).createReader();
+      
+      // Pembacaan direktori secara rekursif
+      await new Promise<void>((resolve) => {
+        const readEntries = () => {
+          dirReader.readEntries(async (entries) => {
+            if (entries.length === 0) {
+              resolve();
+            } else {
+              for (const entry of entries) {
+                await traverseEntry(entry, currentPath);
+              }
+              readEntries(); // Lanjutkan membaca jika masih ada batch entri berikutnya
+            }
+          });
+        };
+        readEntries();
+      });
+    }
+  }
+
+  // Proses semua item yang di-drop
+  // Proses semua item yang di-drop dengan aman (menggunakan for...of)
+  for (const dataItem of items) {
+    const item = dataItem.webkitGetAsEntry?.();
+    if (item) {
+      await traverseEntry(item);
+    }
+  }
+
+  const folderPathsArr = Array.from(folderPathsSet);
+
+  // 1. Jika ada struktur folder (termasuk folder kosong), buat dulu di database via batch-folders
+  if (folderPathsArr.length > 0) {
+    try {
+      await $api("/folders/batch-folders", {
+        method: "POST",
+        body: {
+          parentId: currentFolderId.value,
+          folders: folderPathsArr
+        }
+      });
+    } catch (err) {
+      console.error("Gagal membuat struktur folder massal:", err);
+    }
+  }
+
+  // 2. Jika ada file di dalam struktur tersebut, lanjutkan proses upload file fisiknya
+  if (fileEntries.length > 0) {
+    await uploadDroppedFiles(fileEntries);
+  } else {
+    // Jika hanya folder kosong yang di-drop tanpa file
+    fetchFolderContent(currentFolderId.value);
+    await refreshUserQuota();
+    snackbarColor.value = "success";
+    snackbarText.value = `Berhasil membuat struktur folder (${folderPathsArr.length} folder)`;
+    snackbar.value = true;
+  }
+}
+
+// Fungsi khusus untuk mengunggah file hasil drop
+async function uploadDroppedFiles(fileEntries: { file: File; relativePath: string }[]) {
+  uploadProgress.value = fileEntries.map((f) => ({ name: f.relativePath, progress: 0 }));
+  showUploadDialog.value = true;
+
+  const token = localStorage.getItem("admin_token");
+  const uploadUrl = `${window.location.protocol}//${window.location.hostname}:8090/api/files/upload`;
+
+  let hasError = false;
+  let errorMsg = "";
+  let uploadedCount = 0;
+
+  for (let i = 0; i < fileEntries.length; i++) {
+    const entry = fileEntries[i];
+    if (!entry) continue;
+
+    const formData = new FormData();
+    if (currentFolderId.value) formData.append("folder_id", String(currentFolderId.value));
+    
+    formData.append("fullPath", entry.relativePath);
+    formData.append("files", entry.file);
+    formData.append("path", getCurrentFullPath());
+
+    const currentItem = uploadProgress.value[i];
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", uploadUrl);
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && currentItem) currentItem.progress = Math.round((e.loaded / e.total) * 100);
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            try {
+              const resJson = JSON.parse(xhr.responseText);
+              reject(new Error(resJson.error || "Upload gagal"));
+            } catch (e) {
+              reject(new Error("Upload gagal"));
+            }
+          }
+        };
+        xhr.onerror = () => reject(new Error("Koneksi jaringan gagal"));
+        xhr.send(formData);
+      });
+      uploadedCount++;
+    } catch (err: any) {
+      hasError = true;
+      errorMsg = err.message;
+      break;
+    }
+  }
+
+  showUploadDialog.value = false;
+
+  if (hasError) {
+    snackbarColor.value = "error";
+    snackbarText.value = `Gagal mengunggah: ${errorMsg}`;
+    snackbar.value = true;
+  } else {
+    fetchFolderContent(currentFolderId.value);
+    await refreshUserQuota();
+    snackbarColor.value = "success";
+    snackbarText.value = `Berhasil mengunggah ${uploadedCount} berkas & struktur folder`;
+    snackbar.value = true;
+  }
+}
 
 function uploadFiles(mode = 'file') {
   const input = document.createElement("input");

@@ -45,6 +45,68 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
+// Endpoint untuk Batch Create Folders (Mendukung Struktur Folder & Subfolder Berlapis)
+router.post("/batch-folders", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { parentId, folders } = req.body; // folders = ["folderA", "folderA/subfolder1", "folderB/sub/deep"]
+    
+    if (!folders || !Array.isArray(folders)) {
+      return res.status(400).json({ error: "Invalid folders data" });
+    }
+
+    // 1. Urutkan path dari yang paling sedikit segmennya (parent dulu, baru child di bawahnya)
+    const sortedFolders = [...folders].sort((a, b) => a.split('/').length - b.split('/').length);
+
+    // Cache untuk menyimpan mapping path string ke database folder ID
+    const pathMap = {};
+
+    for (const folderPath of sortedFolders) {
+      const segments = folderPath.split('/');
+      let currentParentId = parentId || null;
+      let accumulatedPath = "";
+
+      for (let i = 0; i < segments.length; i++) {
+        const segmentName = segments[i];
+        accumulatedPath = i === 0 ? segmentName : `${accumulatedPath}/${segmentName}`;
+
+        if (pathMap[accumulatedPath]) {
+          // Jika sudah tercatat di cache, gunakan ID-nya sebagai parent untuk level berikutnya
+          currentParentId = pathMap[accumulatedPath];
+        } else {
+          // Cek apakah folder dengan nama ini sudah ada di database (case-insensitive) pada parent yang sama
+          const existing = await pool.query(
+            `SELECT id FROM folders 
+             WHERE user_id = $1 AND LOWER(name) = LOWER($2) AND (parent_id IS NOT DISTINCT FROM $3)`,
+            [userId, segmentName, currentParentId]
+          );
+
+          let folderId;
+          if (existing.rowCount > 0) {
+            folderId = existing.rows[0].id;
+          } else {
+            folderId = nanoid(16);
+            await pool.query(
+              `INSERT INTO folders (id, user_id, name, parent_id) 
+               VALUES ($1, $2, $3, $4)`,
+              [folderId, userId, segmentName, currentParentId]
+            );
+          }
+
+          // Simpan ke cache path
+          pathMap[accumulatedPath] = folderId;
+          currentParentId = folderId;
+        }
+      }
+    }
+
+    res.json({ success: true, message: "Folders structure created successfully", pathMap });
+  } catch (err) {
+    console.error("Batch Create Folders Error:", err);
+    res.status(500).json({ error: "Failed to create folders" });
+  }
+});
+
 // LIST FOLDER
 router.get("/", auth, async (req, res) => {
   try {
